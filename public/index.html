@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Encuesta de Color</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <h2>CONSENTIMIENTO INFORMADO Y TÉRMINOS DE USO</h2>
+      <p>Proyecto: "Encuesta de Color Favorito y Huella Digital"</p>
+      <p>Grupo F – Materia Trabajo, Tecnología y Sociedad – IFTS 18</p>
+      <p>Propósito: Demostrar cuánta información se puede recolectar en una simple encuesta.</p>
+      <p>Datos recolectados: color elegido, IP, país, ubicación aproximada (opcional), datos del navegador (user-agent, resolución, zona horaria, memoria, núcleos, huella digital anónima). No se graba cámara ni micrófono.</p>
+      <p>Finalidad: Exclusivamente educativa, no se identificará ni perfilará a ningún usuario.</p>
+      <p>Participación voluntaria. Puedes abandonar en cualquier momento.</p>
+      <p>Al marcar la casilla aceptas estos términos.</p>
+      <p><a href="terms.html" target="_blank" rel="noopener noreferrer">Leer todos los Términos y Condiciones</a></p>
+      <label>
+        <input type="checkbox" id="chkAcepto"> He leído y acepto los Términos y Condiciones
+      </label>
+      <button id="btnIniciar" disabled>Comenzar</button>
+    </div>
+  </div>
+  <div id="encuesta" style="display: none;">
+    <h1>¿Cuál es tu color preferido?</h1>
+    <div class="paleta">
+      <div class="color-option" data-color="#FFB3BA"></div>
+      <div class="color-option" data-color="#FFDFBA"></div>
+      <div class="color-option" data-color="#FFFFBA"></div>
+      <div class="color-option" data-color="#BAFFC9"></div>
+      <div class="color-option" data-color="#BAE1FF"></div>
+      <div class="color-option" data-color="#E8BAFF"></div>
+      <div class="color-option" data-color="#FFC3A0"></div>
+      <div class="color-option" data-color="#A0E7E5"></div>
+      <div class="color-option" data-color="#F5E1FD"></div>
+      <div class="color-option" data-color="#B4F8C8"></div>
+      <div class="color-option" data-color="#F9F871"></div>
+      <div class="color-option" data-color="#FF6F91"></div>
+    </div>
+    <button id="btnGuardar" disabled>Guardar mi color</button>
+    <p id="mensaje" style="display: none;"></p>
+    <p class="small-link"><a href="timeline.html">Ver mi línea de tiempo de colores</a></p>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
