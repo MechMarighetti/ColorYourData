@@ -9,23 +9,28 @@
 <body>
   <div id="modal" class="modal">
     <div class="modal-content">
-      <h2>CONSENTIMIENTO INFORMADO Y TÉRMINOS DE USO</h2>
-      <p>Proyecto: "Encuesta de Color Favorito y Huella Digital"</p>
-      <p>Grupo F – Materia Trabajo, Tecnología y Sociedad – IFTS 18</p>
-      <p>Propósito: Demostrar cuánta información se puede recolectar en una simple encuesta.</p>
-      <p>Datos recolectados: color elegido, IP, país, ubicación aproximada (opcional), datos del navegador (user-agent, resolución, zona horaria, memoria, núcleos, huella digital anónima). No se graba cámara ni micrófono.</p>
-      <p>Finalidad: Exclusivamente educativa, no se identificará ni perfilará a ningún usuario.</p>
-      <p>Participación voluntaria. Puedes abandonar en cualquier momento.</p>
-      <p>Al marcar la casilla aceptas estos términos.</p>
-      <p><a href="terms.html" target="_blank" rel="noopener noreferrer">Leer todos los Términos y Condiciones</a></p>
-      <label>
-        <input type="checkbox" id="chkAcepto"> He leído y acepto los Términos y Condiciones
+      <h2>🔐 Información Importante</h2>
+      <div class="terms-summary">
+        <p>✅ <strong>Es seguro y educativo:</strong> Este proyecto demuestra cuánta información se recolecta en una simple encuesta.</p>
+        <p>🎨 <strong>Solo queremos tu color:</strong> Lo principal es saber cuál es tu color favorito.</p>
+        <p>📊 <strong>Datos técnicos para aprender:</strong> También recolectamos datos de navegador, IP y ubicación para crear gráficos y aprender sobre la huella digital.</p>
+        <p>🔒 <strong>Totalmente anónimo:</strong> Nunca te identificaremos. No guardamos nombre, email ni datos personales.</p>
+        <p>🎓 <strong>Solo educación:</strong> Este proyecto es parte de la materia Trabajo, Tecnología y Sociedad del IFTS 18.</p>
+      </div>
+      <p><a href="terms.html" target="_blank" rel="noopener noreferrer">📖 Leer los Términos y Condiciones completos</a></p>
+      <label class="checkbox-label">
+        <input type="checkbox" id="chkAcepto"> 
+        ✅ Entiendo y acepto. ¡Quiero elegir mi color!
       </label>
-      <button id="btnIniciar" disabled>Comenzar</button>
+      <button id="btnIniciar" disabled>🎨 Comenzar a jugar</button>
     </div>
   </div>
   <div id="encuesta" style="display: none;">
-    <h1>¿Cuál es tu color preferido?</h1>
+    <div class="hero-card">
+      <div class="hero-badge">🎨 Encuesta de Color</div>
+      <h1>¿Cuál es tu color preferido? 🌈</h1>
+      <p class="hero-text">Elige un color, guarda tu elección y ayuda a que este juego crezca. 🚀 ¡Invita a tus amigos a elegir el suyo y vean juntos quién tiene la paleta más colorida! 👥✨</p>
+    </div>
     <div class="paleta">
       <div class="color-option" data-color="#FFB3BA"></div>
       <div class="color-option" data-color="#FFDFBA"></div>
@@ -40,9 +45,15 @@
       <div class="color-option" data-color="#F9F871"></div>
       <div class="color-option" data-color="#FF6F91"></div>
     </div>
-    <button id="btnGuardar" disabled>Guardar mi color</button>
-    <p id="mensaje" style="display: none;"></p>
-    <p class="small-link"><a href="timeline.html">Ver mi línea de tiempo de colores</a></p>
+    <button id="btnGuardar" disabled>💾 Guardar mi color</button>
+    <div class="share-row">
+      <p id="mensaje" style="display: none;"></p>
+      <button id="btnCompartir" type="button" style="display: none;">📱 Compartir con amigos</button>
+    </div>
+    <div class="links-row">
+      <a class="small-link" href="timeline.html">🌈 Ver mi línea de tiempo</a>
+      <a class="small-link" href="stats.html">📊 Ver estadísticas globales</a>
+    </div>
   </div>
   <script src="script.js"></script>
 </body>

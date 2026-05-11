@@ -81,13 +81,43 @@ document.getElementById('btnGuardar').addEventListener('click', async function()
       body: JSON.stringify(datos)
     });
     if (response.ok) {
-      document.getElementById('mensaje').textContent = '¡Gracias por participar! Tu color ha sido registrado.';
+      document.getElementById('mensaje').textContent = '🎉 ¡Gracias por participar! Tu color ha sido registrado. 🎨✨';
       document.getElementById('mensaje').style.display = 'block';
+      document.getElementById('btnCompartir').style.display = 'inline-block';
       this.disabled = true;
     } else {
       alert('Error al guardar.');
     }
   } catch (err) {
     alert('Error de conexión.');
+  }
+});
+
+function copyShareLink() {
+  const shareUrl = window.location.href;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      alert('Enlace copiado. Pega el enlace para invitar a tus amigos.');
+    });
+  } else {
+    prompt('Copia este enlace y compártelo:', shareUrl);
+  }
+}
+
+document.getElementById('btnCompartir').addEventListener('click', async function() {
+  const shareData = {
+    title: 'Encuesta de Color Favorito',
+    text: 'Elegí un color y descubre qué eligen tus amigos. ¡Comparte el enlace!',
+    url: window.location.href
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+    } catch (err) {
+      copyShareLink();
+    }
+  } else {
+    copyShareLink();
   }
 });

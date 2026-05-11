@@ -1,9 +1,32 @@
+function openWarning(title, explanation) {
+  document.getElementById('modal-content').innerHTML = `<p>${explanation}</p>`;
+  document.querySelector('.modal-header h2').textContent = `⚠️ ${title}`;
+  document.getElementById('warning-modal').style.display = 'flex';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('.modal-close').addEventListener('click', () => {
+    document.getElementById('warning-modal').style.display = 'none';
+  });
+  document.querySelector('.modal-btn').addEventListener('click', () => {
+    document.getElementById('warning-modal').style.display = 'none';
+  });
+  document.getElementById('warning-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'warning-modal') document.getElementById('warning-modal').style.display = 'none';
+  });
+});
+
+const timelineWarnings = {
+  'IP de sesión': 'Tu dirección IP se recolecta automáticamente del lado del servidor y se usa para agrupar tus respuestas y obtener ubicación aproximada. Dato: <strong>ip</strong>',
+  'Ubicación GPS': 'Si diste permiso, tu ubicación geográfica precisa (latitud/longitud) se almacena. Datos: <strong>latitude, longitude</strong>',
+  'Timestamp': 'Se registra la fecha y hora exacta de cada elección. Dato: <strong>timestamp</strong>'
+};
+
 async function cargarTimeline() {
   const contenedor = document.getElementById('timeline');
   const info = document.getElementById('session-info');
   const ipGroup = document.getElementById('ip-group');
 
-  // Obtener ubicación actual
   let userLocation = 'Ubicación no disponible';
   if (navigator.geolocation) {
     try {
@@ -25,10 +48,28 @@ async function cargarTimeline() {
 
     const data = await response.json();
     info.innerHTML = `
-      <p><strong>IP de tu sesión:</strong> ${data.currentIp}</p>
-      <p><strong>Ubicación actual:</strong> ${userLocation}</p>
-      <p><strong>Entradas registradas para tu IP:</strong> ${data.timeline.length}</p>
+      <div class="session-item">
+        <span>🔒 IP de sesión: <strong>${data.currentIp}</strong></span>
+        <span class="warning-icon-inline" data-warning="IP de sesión">⚠️</span>
+      </div>
+      <div class="session-item">
+        <span>📍 Ubicación GPS: <strong>${userLocation}</strong></span>
+        <span class="warning-icon-inline" data-warning="Ubicación GPS">⚠️</span>
+      </div>
+      <div class="session-item">
+        <span>📝 Entradas registradas: <strong>${data.timeline.length}</strong></span>
+        <span class="warning-icon-inline" data-warning="Timestamp">⚠️</span>
+      </div>
     `;
+
+    document.querySelectorAll('.warning-icon-inline').forEach(icon => {
+      icon.addEventListener('click', () => {
+        const title = icon.dataset.warning;
+        if (timelineWarnings[title]) {
+          openWarning(title, timelineWarnings[title]);
+        }
+      });
+    });
 
     if (data.timeline.length === 0) {
       contenedor.innerHTML = '<p>No se encontraron elecciones para tu IP. Prueba a guardar un color primero.</p>';
@@ -41,8 +82,8 @@ async function cargarTimeline() {
             <div class="timeline-content">
               <div class="color-sample" style="background-color: ${colorHex};"></div>
               <div class="timeline-details">
-                <strong>${entry.color}</strong>
-                <div class="timeline-date">${new Date(entry.timestamp).toLocaleString()}</div>
+                <strong>🎨 ${entry.color}</strong>
+                <div class="timeline-date">⏰ ${new Date(entry.timestamp).toLocaleString()}</div>
                 ${entry.latitude && entry.longitude ? `<div class="timeline-location">📍 ${entry.latitude}, ${entry.longitude}</div>` : ''}
               </div>
             </div>
@@ -52,12 +93,12 @@ async function cargarTimeline() {
     }
 
     if (data.groupedByIp.length > 0) {
-      ipGroup.innerHTML = '<h2>🌍 Sesiones agrupadas por IP</h2>' + data.groupedByIp.map(group => {
+      ipGroup.innerHTML = '<h2>🌍 Tus sesiones agrupadas</h2>' + data.groupedByIp.map(group => {
         return `
           <div class="group-card">
-            <div><strong>IP:</strong> ${group.ip}</div>
-            <div><strong>Registros:</strong> ${group.total}</div>
-            <div><strong>Última vez:</strong> ${new Date(group.last_seen).toLocaleString()}</div>
+            <div>🔐 <strong>IP:</strong> ${group.ip}</div>
+            <div>📊 <strong>Registros:</strong> ${group.total}</div>
+            <div>⏱️ <strong>Última vez:</strong> ${new Date(group.last_seen).toLocaleString()}</div>
           </div>
         `;
       }).join('');
