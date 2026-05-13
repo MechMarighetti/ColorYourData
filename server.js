@@ -121,6 +121,39 @@ app.get('/timeline-data', async (req, res) => {
         res.status(500).json({ error: 'Error interno' });
     }
 });
+// Endpoint para obtener el perfil completo del usuario actual (última respuesta)
+app.get('/api/mi-perfil', async (req, res) => {
+    try {
+        const forwarded = req.headers['x-forwarded-for'];
+        const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+        const cleanIp = ip.replace(/^::ffff:/, '');
+
+        // Obtener la última respuesta de este IP
+        const perfil = await dbGet(
+            `SELECT 
+                color, country, region, 
+                tiempo_seleccion, clics_erroneos, movimientos_mouse, 
+                porcentaje_scroll, pausas_scroll,
+                user_agent, platform, language, screen_resolution,
+                color_depth, timezone, cpu_cores, device_memory, fingerprint,
+                timestamp
+             FROM respuestas 
+             WHERE ip = ? 
+             ORDER BY timestamp DESC 
+             LIMIT 1`,
+            [cleanIp]
+        );
+
+        if (!perfil) {
+            return res.status(404).json({ error: 'No se encontraron respuestas para esta IP' });
+        }
+
+        res.json(perfil);
+    } catch (err) {
+        console.error('Error en /api/mi-perfil:', err);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
 
 // Endpoint para estadísticas globales (CORREGIDO asíncrono)
 app.get('/stats-data', async (req, res) => {

@@ -1,24 +1,11 @@
 document.addEventListener('DOMContentLoaded', async function() {
   const contentDiv = document.getElementById('content');
 
-  // Verificar si el usuario ya participó (opcional, usando sessionStorage)
-  const yaVoto = sessionStorage.getItem('yaVoto');
-  // Si quieres mantener el mensaje de "Primero debés guardar tu color",
-  // puedes usar esa variable. Pero como ahora usamos /timeline-data,
-  // simplemente mostraremos el error si no hay respuestas.
-
   try {
-    // Llamamos al endpoint que devuelve el historial de la IP actual
-    const response = await fetch('/timeline-data');
+    // Llamamos al nuevo endpoint que devuelve la última respuesta completa
+    const response = await fetch('/api/mi-perfil');
     
-    if (!response.ok) {
-      throw new Error('Error al cargar los datos del perfil');
-    }
-
-    const data = await response.json();
-
-    // data.timeline es un array de respuestas ordenadas ASC por timestamp
-    if (!data.timeline || data.timeline.length === 0) {
+    if (response.status === 404) {
       contentDiv.innerHTML = `
         <div class="error">
           <p>🎨 Aún no has guardado ningún color favorito.</p>
@@ -28,9 +15,12 @@ document.addEventListener('DOMContentLoaded', async function() {
       return;
     }
 
-    // Tomamos la última respuesta (la más reciente)
-    const ultimaRespuesta = data.timeline[data.timeline.length - 1];
-    renderPerfil(ultimaRespuesta);
+    if (!response.ok) {
+      throw new Error('Error al cargar el perfil');
+    }
+
+    const data = await response.json();
+    renderPerfil(data);
   } catch (err) {
     console.error(err);
     contentDiv.innerHTML = `
@@ -56,21 +46,17 @@ function renderPerfil(data) {
     </div>
   `;
 
-  // Sección: Tiempo de decisión (data.tiempo_seleccion está en milisegundos)
+  // Sección: Tiempo de decisión
   const tiempoMs = parseInt(data.tiempo_seleccion);
   const tiempoSeg = isNaN(tiempoMs) ? '--' : (tiempoMs / 1000).toFixed(2);
   let interpretacionTiempo = '';
-  let iconoTiempo = '';
 
   if (tiempoMs < 2000) {
     interpretacionTiempo = '⚡ ¡Rapidísimo! No lo dudaste ni un segundo.';
-    iconoTiempo = '⚡';
   } else if (tiempoMs <= 5000) {
     interpretacionTiempo = '🧐 Lo pensaste un poquito, buena elección.';
-    iconoTiempo = '🧐';
   } else {
     interpretacionTiempo = '🐢 ¡Te tomaste tu tiempo! Prefieres analizar antes de decidir.';
-    iconoTiempo = '🐢';
   }
 
   html += `
@@ -164,33 +150,30 @@ function renderPerfil(data) {
 }
 
 function renderHeatmap(movimientos) {
-  // Contar frecuencias (esperamos celdas 0-15)
+  // Contar frecuencias (celdas 0-15)
   const frecuencias = {};
-  for (let i = 0; i < 16; i++) {
-    frecuencias[i] = 0;
-  }
+  for (let i = 0; i < 16; i++) frecuencias[i] = 0;
+  
   movimientos.forEach(cellIdx => {
-    if (cellIdx >= 0 && cellIdx < 16) {
-      frecuencias[cellIdx]++;
-    }
+    if (cellIdx >= 0 && cellIdx < 16) frecuencias[cellIdx]++;
   });
 
   const maxFrecuencia = Math.max(...Object.values(frecuencias));
 
-  function getHeatmapColor(freq, max) {
+  const getHeatmapColor = (freq, max) => {
     if (freq === 0) return '#f0f0f0';
     const ratio = freq / max;
-    if (ratio > 0.66) return '#ff6f91'; // Rojo
-    if (ratio > 0.33) return '#ffc3a0'; // Naranja/Amarillo
-    return '#b4f8c8'; // Verde claro
-  }
+    if (ratio > 0.66) return '#ff6f91';
+    if (ratio > 0.33) return '#ffc3a0';
+    return '#b4f8c8';
+  };
 
-  function getFrequencyLabel(freq) {
+  const getFrequencyLabel = (freq) => {
     if (freq === 0) return '-';
     if (freq === 1) return '1';
     if (freq <= 5) return freq;
     return freq + '+';
-  }
+  };
 
   let heatmapHtml = '<div class="heatmap-container">';
   for (let i = 0; i < 16; i++) {
