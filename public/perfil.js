@@ -1,0 +1,217 @@
+document.addEventListener('DOMContentLoaded', async function() {
+  const contentDiv = document.getElementById('content');
+
+  // Verificar si el usuario ya participó (opcional, usando sessionStorage)
+  const yaVoto = sessionStorage.getItem('yaVoto');
+  // Si quieres mantener el mensaje de "Primero debés guardar tu color",
+  // puedes usar esa variable. Pero como ahora usamos /timeline-data,
+  // simplemente mostraremos el error si no hay respuestas.
+
+  try {
+    // Llamamos al endpoint que devuelve el historial de la IP actual
+    const response = await fetch('/timeline-data');
+    
+    if (!response.ok) {
+      throw new Error('Error al cargar los datos del perfil');
+    }
+
+    const data = await response.json();
+
+    // data.timeline es un array de respuestas ordenadas ASC por timestamp
+    if (!data.timeline || data.timeline.length === 0) {
+      contentDiv.innerHTML = `
+        <div class="error">
+          <p>🎨 Aún no has guardado ningún color favorito.</p>
+          <p><a href="index.html" style="color: #ff6f91; font-weight: 600; text-decoration: underline;">Ir a la encuesta</a></p>
+        </div>
+      `;
+      return;
+    }
+
+    // Tomamos la última respuesta (la más reciente)
+    const ultimaRespuesta = data.timeline[data.timeline.length - 1];
+    renderPerfil(ultimaRespuesta);
+  } catch (err) {
+    console.error(err);
+    contentDiv.innerHTML = `
+      <div class="error">
+        <p>❌ Error al cargar tu perfil. Intenta de nuevo más tarde.</p>
+        <p><a href="index.html" style="color: #ff6f91; font-weight: 600; text-decoration: underline;">Volver al inicio</a></p>
+      </div>
+    `;
+  }
+});
+
+function renderPerfil(data) {
+  const contentDiv = document.getElementById('content');
+  let html = '';
+
+  // Sección: Tu color elegido
+  html += `
+    <div class="section">
+      <h2>🎨 Tu color elegido</h2>
+      <div class="color-preview" style="background-color: ${data.color};"></div>
+      <p style="text-align: center; font-size: 1.2em; color: ${data.color}; font-weight: 600;">${data.color}</p>
+      <p style="text-align: center; color: #5d5d77;">De: <strong>${data.country || 'Desconocido'}</strong></p>
+    </div>
+  `;
+
+  // Sección: Tiempo de decisión (data.tiempo_seleccion está en milisegundos)
+  const tiempoMs = parseInt(data.tiempo_seleccion);
+  const tiempoSeg = isNaN(tiempoMs) ? '--' : (tiempoMs / 1000).toFixed(2);
+  let interpretacionTiempo = '';
+  let iconoTiempo = '';
+
+  if (tiempoMs < 2000) {
+    interpretacionTiempo = '⚡ ¡Rapidísimo! No lo dudaste ni un segundo.';
+    iconoTiempo = '⚡';
+  } else if (tiempoMs <= 5000) {
+    interpretacionTiempo = '🧐 Lo pensaste un poquito, buena elección.';
+    iconoTiempo = '🧐';
+  } else {
+    interpretacionTiempo = '🐢 ¡Te tomaste tu tiempo! Prefieres analizar antes de decidir.';
+    iconoTiempo = '🐢';
+  }
+
+  html += `
+    <div class="section">
+      <h2>⏱️ Tiempo de decisión</h2>
+      <div class="stat-value">${tiempoSeg}s</div>
+      <div class="interpretation">${interpretacionTiempo}</div>
+    </div>
+  `;
+
+  // Sección: ¿Indeciso o decidido?
+  const clicsErroneos = (data.clics_erroneos === 'No consentido' || !data.clics_erroneos) ? 0 : parseInt(data.clics_erroneos);
+  let interpretacionClics = '';
+
+  if (clicsErroneos === 0) {
+    interpretacionClics = '🎯 Súper decidido/a. Elegiste a la primera.';
+  } else if (clicsErroneos <= 2) {
+    interpretacionClics = '🔄 Exploraste un par de opciones, curiosidad sana.';
+  } else {
+    interpretacionClics = '🎨 ¡Te encanta explorar todas las posibilidades!';
+  }
+
+  html += `
+    <div class="section">
+      <h2>🤔 ¿Indeciso o decidido?</h2>
+      <div class="stat-value">${clicsErroneos} cambios</div>
+      <div class="interpretation">${interpretacionClics}</div>
+    </div>
+  `;
+
+  // Sección: Mapa de calor de movimientos
+  const movimientosStr = data.movimientos_mouse;
+  if (movimientosStr && movimientosStr !== 'No consentido') {
+    try {
+      const movimientos = JSON.parse(movimientosStr);
+      if (Array.isArray(movimientos) && movimientos.length > 0) {
+        html += renderHeatmap(movimientos);
+      } else {
+        html += `
+          <div class="section">
+            <h2>🗺️ Mapa de calor de tus movimientos</h2>
+            <div class="no-data">No se registraron movimientos (no diste permiso).</div>
+          </div>
+        `;
+      }
+    } catch (err) {
+      html += `
+        <div class="section">
+          <h2>🗺️ Mapa de calor de tus movimientos</h2>
+          <div class="no-data">No se registraron movimientos válidos.</div>
+        </div>
+      `;
+    }
+  } else {
+    html += `
+      <div class="section">
+        <h2>🗺️ Mapa de calor de tus movimientos</h2>
+        <div class="no-data">No se registraron movimientos (no diste permiso).</div>
+      </div>
+    `;
+  }
+
+  // Sección: Tu exploración de la página
+  const scrollPorcentaje = (data.porcentaje_scroll === 'No consentido' || !data.porcentaje_scroll) ? 0 : parseInt(data.porcentaje_scroll);
+  const pausasScroll = (data.pausas_scroll === 'No consentido' || !data.pausas_scroll) ? 0 : parseInt(data.pausas_scroll);
+
+  let scrollTexto = '';
+  if (scrollPorcentaje === 0) {
+    scrollTexto = 'Parece que no hiciste scroll, ibas directo al color. 🎯';
+  } else {
+    scrollTexto = `Has visto el <strong>${scrollPorcentaje}%</strong> de la página.`;
+  }
+
+  let pausasTexto = '';
+  if (pausasScroll > 0) {
+    pausasTexto = `<p>📖 Te detuviste <strong>${pausasScroll} veces</strong> a leer con atención.</p>`;
+  }
+
+  html += `
+    <div class="section">
+      <h2>👀 Tu exploración de la página</h2>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: ${Math.min(scrollPorcentaje, 100)}%;"></div>
+      </div>
+      <p>${scrollTexto}</p>
+      ${pausasTexto}
+    </div>
+  `;
+
+  contentDiv.innerHTML = html;
+}
+
+function renderHeatmap(movimientos) {
+  // Contar frecuencias (esperamos celdas 0-15)
+  const frecuencias = {};
+  for (let i = 0; i < 16; i++) {
+    frecuencias[i] = 0;
+  }
+  movimientos.forEach(cellIdx => {
+    if (cellIdx >= 0 && cellIdx < 16) {
+      frecuencias[cellIdx]++;
+    }
+  });
+
+  const maxFrecuencia = Math.max(...Object.values(frecuencias));
+
+  function getHeatmapColor(freq, max) {
+    if (freq === 0) return '#f0f0f0';
+    const ratio = freq / max;
+    if (ratio > 0.66) return '#ff6f91'; // Rojo
+    if (ratio > 0.33) return '#ffc3a0'; // Naranja/Amarillo
+    return '#b4f8c8'; // Verde claro
+  }
+
+  function getFrequencyLabel(freq) {
+    if (freq === 0) return '-';
+    if (freq === 1) return '1';
+    if (freq <= 5) return freq;
+    return freq + '+';
+  }
+
+  let heatmapHtml = '<div class="heatmap-container">';
+  for (let i = 0; i < 16; i++) {
+    const freq = frecuencias[i];
+    const color = getHeatmapColor(freq, maxFrecuencia);
+    heatmapHtml += `
+      <div class="heatmap-cell" style="background-color: ${color};" title="Celda ${i}: ${freq} visitas">
+        ${getFrequencyLabel(freq)}
+      </div>
+    `;
+  }
+  heatmapHtml += '</div>';
+
+  return `
+    <div class="section">
+      <h2>🗺️ Mapa de calor de tus movimientos</h2>
+      <p>Rojo = mucho movimiento | Naranja = algo | Verde = poco</p>
+      ${heatmapHtml}
+      <p style="font-size: 0.9em; color: #888; text-align: center; margin-top: 10px;">
+        Registramos <strong>${movimientos.length}</strong> posiciones del mouse en una cuadrícula 4x4.
+      </p>
+    </div>
+  `;
+}

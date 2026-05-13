@@ -74,6 +74,7 @@ async function cargarTimeline() {
     if (data.timeline.length === 0) {
       contenedor.innerHTML = '<p>No se encontraron elecciones para tu IP. Prueba a guardar un color primero.</p>';
     } else {
+      if (Array.isArray(data.timeline)) {
       contenedor.innerHTML = data.timeline.map((entry, index) => {
         const colorHex = entry.color.startsWith('#') ? entry.color : `#${entry.color}`;
         return `
@@ -90,7 +91,10 @@ async function cargarTimeline() {
           </div>
         `;
       }).join('');
-    }
+    } else {
+    contenedor.innerHTML = '<p class="error">Error: Los datos del timeline no son válidos. Revisá la consola para más detalles.</p>';
+    console.error('data.timeline no es un array:', data.timeline);
+  }}
 
     if (data.groupedByIp.length > 0) {
       ipGroup.innerHTML = '<h2>🌍 Tus sesiones agrupadas</h2>' + data.groupedByIp.map(group => {

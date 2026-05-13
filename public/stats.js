@@ -1,117 +1,228 @@
-function openWarning(title, explanation) {
-  document.getElementById('modal-content').innerHTML = `<p>${explanation}</p>`;
-  document.querySelector('.modal-header h2').textContent = `⚠️ ${title}`;
-  document.getElementById('warning-modal').style.display = 'flex';
-}
+let chartColores = null;
+let chartPaises = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelector('.modal-close').addEventListener('click', () => {
-    document.getElementById('warning-modal').style.display = 'none';
-  });
-  document.querySelector('.modal-btn').addEventListener('click', () => {
-    document.getElementById('warning-modal').style.display = 'none';
-  });
-  document.getElementById('warning-modal').addEventListener('click', (e) => {
-    if (e.target.id === 'warning-modal') document.getElementById('warning-modal').style.display = 'none';
-  });
-});
-
-const warnings = {
-  'Colores preferidos': 'Se recolecta el color que cada usuario selecciona. Este es el dato principal de la encuesta. Nombre de dato: <strong>color</strong>',
-  'Países de origen': 'Se obtiene la geolocalización aproximada del país a partir de tu IP usando ip-api.com. Nombre de dato: <strong>country</strong>',
-  'Regiones/ciudades': 'Se extrae la región o ciudad a partir del análisis de IP. Nombre de dato: <strong>region</strong>',
-  'Navegadores y plataformas': 'Se recolecta el User-Agent del navegador que revela el tipo de navegador, versión y SO. Nombre de dato: <strong>platform</strong>',
-  'Idiomas del navegador': 'Se recolecta el idioma configurado en el navegador del usuario. Nombre de dato: <strong>language</strong>',
-  'Resoluciones de pantalla': 'Se guarda el ancho x alto de tu pantalla. Nombre de dato: <strong>screen_resolution</strong>',
-  'Zonas horarias': 'Se recolecta la zona horaria del navegador. Nombre de dato: <strong>timezone</strong>'
-};
-
-function renderStatBlock(title, items, total, color, emoji = '📌') {
-  return `
-    <div class="stat-block stat-block-warning" data-warning="${title}">
-      <div class="stat-block-header">
-        <div>
-          <h3>${emoji} ${title}</h3>
-          <div class="warning-icon" title="Saber qué datos se recolectan">⚠️</div>
-        </div>
-      </div>
-      <div class="stat-list">
-        ${items.map(item => {
-          const percent = total ? Math.round((item.count / total) * 100) : 0;
-          const colorPreview = item.name && item.name.startsWith('#') ? item.name : '';
-          return `
-            <div class="stat-row">
-              <div class="stat-label">
-                ${colorPreview ? `<span class="color-dot" style="background-color: ${colorPreview};"></span>` : ''}
-                ${item.name || 'Sin dato'}
-              </div>
-              <div class="stat-bar-wrapper">
-                <div class="stat-bar" style="width: ${percent}%; background: ${color};"></div>
-              </div>
-              <div class="stat-value">${item.count} (${percent}%)</div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    </div>
-  `;
-}
-
-async function cargarStats() {
-  const panel = document.getElementById('stats-panels');
-  const summary = document.getElementById('stats-summary');
+document.addEventListener('DOMContentLoaded', async function() {
+  const contentDiv = document.getElementById('content');
 
   try {
     const response = await fetch('/stats-data');
+    
     if (!response.ok) {
-      panel.innerHTML = '<p class="error">No se pudieron cargar las estadísticas.</p>';
-      return;
+      throw new Error('Error al cargar estadísticas');
     }
 
     const data = await response.json();
-    summary.innerHTML = `
-      <div class="summary-card">
-        <div class="summary-item">💬 <strong>Total de respuestas:</strong> ${data.total}</div>
-        <div class="summary-item">👥 <strong>IPs distintas:</strong> ${data.unique_ips}</div>
-      </div>
-      <div class="summary-visual">
-        <div class="visual-bar">
-          <div class="visual-bar-fill" style="width: ${Math.min((data.total / 100) * 10, 100)}%;"></div>
+    
+    // Verificar si hay datos reales (total > 0 y al menos un color)
+    if (!data.total || data.total === 0 || !data.colors || data.colors.length === 0) {
+      contentDiv.innerHTML = `
+        <div class="error">
+          🎨 Aún no hay respuestas suficientes para mostrar estadísticas. ¡Sé el primero en participar!
         </div>
+      `;
+      return;
+    }
+
+    renderStats(data);
+  } catch (err) {
+    console.error('Error:', err);
+    contentDiv.innerHTML = `
+      <div class="error">
+        ❌ Error al cargar las estadísticas. Intenta más tarde.
       </div>
     `;
+  }
+});
 
-    const colorItems = data.colors.map(row => ({ name: row.color, count: row.count }));
-    const countryItems = data.countries.map(row => ({ name: row.country, count: row.count }));
-    const regionItems = data.regions.map(row => ({ name: row.region, count: row.count }));
-    const platformItems = data.platforms.map(row => ({ name: row.platform, count: row.count }));
-    const languageItems = data.languages.map(row => ({ name: row.language, count: row.count }));
-    const resolutionItems = data.resolutions.map(row => ({ name: row.screen_resolution, count: row.count }));
-    const timezoneItems = data.timezones.map(row => ({ name: row.timezone, count: row.count }));
-
-    panel.innerHTML = `
-      ${renderStatBlock('Colores preferidos', colorItems, data.total, '#ff6f91', '🎨')}
-      ${renderStatBlock('Países de origen', countryItems, data.total, '#7b5cff', '🌍')}
-      ${renderStatBlock('Regiones/ciudades', regionItems, data.total, '#59c3d1', '🏙️')}
-      ${renderStatBlock('Navegadores y plataformas', platformItems, data.total, '#ffb347', '🖥️')}
-      ${renderStatBlock('Idiomas del navegador', languageItems, data.total, '#a07eff', '🗣️')}
-      ${renderStatBlock('Resoluciones de pantalla', resolutionItems, data.total, '#6acb8f', '📱')}
-      ${renderStatBlock('Zonas horarias', timezoneItems, data.total, '#f9d56e', '⏰')}
-    `;
-
-    document.querySelectorAll('.stat-block-warning').forEach(block => {
-      const title = block.dataset.warning;
-      const warningIcon = block.querySelector('.warning-icon');
-      if (warningIcon && warnings[title]) {
-        warningIcon.addEventListener('click', () => {
-          openWarning(title, warnings[title]);
-        });
-      }
-    });
-  } catch (err) {
-    panel.innerHTML = '<p class="error">Error al cargar las estadísticas.</p>';
-    console.error(err);
+function renderStats(data) {
+  const contentDiv = document.getElementById('content');
+  
+  // Limpiar contenido anterior
+  contentDiv.innerHTML = '';
+  
+  // --- Sección de resumen (compatible con lo que realmente envía el backend) ---
+  let html = '<div class="stats-summary">';
+  
+  // Total de respuestas (no de IPs únicas, pero puedes cambiar a unique_ips si prefieres)
+  html += `
+    <div class="stat-box">
+      <h3>Total de Respuestas</h3>
+      <div class="value">${data.total}</div>
+    </div>
+  `;
+  
+  // Participantes únicos (IPs distintas)
+  html += `
+    <div class="stat-box">
+      <h3>Participantes Únicos</h3>
+      <div class="value">${data.unique_ips || 0}</div>
+    </div>
+  `;
+  
+  // Estas métricas NO existen en el backend actual.
+  // Las dejamos con valor "Próximamente" o las eliminamos.
+  // Por ahora las muestro como no disponibles.
+  html += `
+    <div class="stat-box">
+      <h3>Tiempo Promedio</h3>
+      <div class="value">--</div>
+    </div>
+  `;
+  
+  html += `
+    <div class="stat-box">
+      <h3>Cambios Promedio</h3>
+      <div class="value">--</div>
+    </div>
+  `;
+  
+  html += `
+    <div class="stat-box">
+      <h3>Scroll Promedio</h3>
+      <div class="value">--</div>
+    </div>
+  `;
+  
+  html += '</div>';
+  
+  // Gráfico de Colores (usando data.colors y .count)
+  html += '<h2>🎨 Distribución de Colores</h2>';
+  html += '<div class="chart-container"><canvas id="chartColores"></canvas></div>';
+  
+  // Gráfico de Países (si hay datos)
+  if (data.countries && data.countries.length > 0) {
+    html += '<h2>🌍 Top Países</h2>';
+    html += '<div class="chart-container"><canvas id="chartPaises"></canvas></div>';
+  }
+  
+  contentDiv.innerHTML = html;
+  
+  // Renderizar gráficos con la estructura correcta
+  renderChartColores(data.colors);
+  if (data.countries && data.countries.length > 0) {
+    renderChartPaises(data.countries);
   }
 }
 
-cargarStats();
+function renderChartColores(colores) {
+  // colores es un array de objetos { color: string, count: number }
+  if (chartColores) {
+    chartColores.destroy();
+  }
+
+  const ctx = document.getElementById('chartColores');
+  if (!ctx) return;
+
+  const labels = colores.map(c => c.color || 'Desconocido');
+  const data = colores.map(c => c.count || 0);
+  const backgroundColors = colores.map(c => c.color || '#cccccc');
+
+  chartColores = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: backgroundColors,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'right',
+          labels: {
+            font: { size: 12 },
+            color: '#5d5d77',
+            padding: 15
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = Math.round((context.parsed / total) * 100);
+              return `${context.parsed} votos (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderChartPaises(paises) {
+  // paises es un array de objetos { country: string, count: number }
+  if (chartPaises) {
+    chartPaises.destroy();
+  }
+
+  const ctx = document.getElementById('chartPaises');
+  if (!ctx) return;
+
+  // Tomar top 10 (aunque el backend ya limita a 8, por seguridad)
+  const topPaises = paises.slice(0, 10);
+  const labels = topPaises.map(p => p.country || 'Desconocido');
+  const data = topPaises.map(p => p.count || 0);
+
+  chartPaises = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Número de Participantes',
+        data: data,
+        backgroundColor: 'rgba(255, 111, 145, 0.7)',
+        borderColor: 'rgba(255, 111, 145, 1)',
+        borderWidth: 2,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            font: { size: 12 },
+            color: '#5d5d77'
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.parsed.x} participantes`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            color: '#5d5d77',
+            font: { size: 11 }
+          }
+        },
+        y: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: '#5d5d77',
+            font: { size: 11 }
+          }
+        }
+      }
+    }
+  });
+}

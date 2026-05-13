@@ -1,4 +1,12 @@
 let colorSeleccionado = null;
+let consentimientoComportamiento = false;
+let tiempoInicio = null;
+let clicsErrarios = 0;
+let maxScroll = 0;
+let pausasScroll = 0;
+let mousePattern = [];
+let lastMouseCell = null;
+let scrollTimeout = null;
 
 function crearFingerprint() {
   const canvas = document.createElement('canvas');
@@ -12,6 +20,27 @@ function crearFingerprint() {
     hash += dataURL.charCodeAt(i);
   }
   return hash.toString();
+}
+
+function compressMousePattern(pattern) {
+  if (pattern.length === 0) return [];
+  const compressed = [pattern[0]];
+  for (let i = 1; i < pattern.length; i++) {
+    if (pattern[i] !== pattern[i - 1]) {
+      compressed.push(pattern[i]);
+    }
+  }
+  return compressed;
+}
+
+function getMouseCell(event) {
+  const rect = document.getElementById('encuesta').getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null;
+  const col = Math.floor((x / rect.width) * 4);
+  const row = Math.floor((y / rect.height) * 4);
+  return row * 4 + col;
 }
 
 async function recolectarDatos() {
@@ -46,6 +75,18 @@ async function recolectarDatos() {
     data.longitude = null;
   }
 
+  // Datos de comportamiento si hay consentimiento
+  if (consentimientoComportamiento) {
+    const tiempoSeleccion = Date.now() - tiempoInicio;
+    const cambios = clicsErrarios > 0 ? clicsErrarios - 1 : 0;
+    const compressedPattern = compressMousePattern(mousePattern);
+    data.tiempo_seleccion = tiempoSeleccion.toString();
+    data.clics_erroneos = cambios.toString();
+    data.movimientos_mouse = JSON.stringify(compressedPattern);
+    data.porcentaje_scroll = Math.round(maxScroll).toString();
+    data.pausas_scroll = pausasScroll.toString();
+  }
+
   return data;
 }
 
@@ -54,14 +95,35 @@ document.getElementById('chkAcepto').addEventListener('change', function() {
   document.getElementById('btnIniciar').disabled = !this.checked;
 });
 
+document.getElementById('chkComportamiento').addEventListener('change', function() {
+  consentimientoComportamiento = this.checked;
+});
+
 document.getElementById('btnIniciar').addEventListener('click', function() {
   document.getElementById('modal').style.display = 'none';
   document.getElementById('encuesta').style.display = 'block';
+  
+  // Inicializar tracking
+  tiempoInicio = Date.now();
+  clicsErrarios = 0;
+  maxScroll = 0;
+  pausasScroll = 0;
+  mousePattern = [];
+  lastMouseCell = null;
+  
+  if (consentimientoComportamiento) {
+    // Listener para mouse
+    document.addEventListener('mousemove', handleMouseMove);
+    
+    // Listener para scroll
+    window.addEventListener('scroll', handleScroll);
+  }
 });
 
 // Colores
 document.querySelectorAll('.color-option').forEach(option => {
   option.addEventListener('click', function() {
+    clicsErrarios++;
     colorSeleccionado = this.dataset.color;
     document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
     this.classList.add('selected');
@@ -71,6 +133,11 @@ document.querySelectorAll('.color-option').forEach(option => {
 
 // Guardar
 document.getElementById('btnGuardar').addEventListener('click', async function() {
+  // Detener listeners
+  document.removeEventListener('mousemove', handleMouseMove);
+  window.removeEventListener('scroll', handleScroll);
+  if (scrollTimeout) clearTimeout(scrollTimeout);
+  
   const datos = await recolectarDatos();
   try {
     const response = await fetch('/guardar-color', {
@@ -81,7 +148,11 @@ document.getElementById('btnGuardar').addEventListener('click', async function()
       body: JSON.stringify(datos)
     });
     if (response.ok) {
-      document.getElementById('mensaje').textContent = '🎉 ¡Gracias por participar! Tu color ha sido registrado. 🎨✨';
+      const result = await response.json();
+      if (result.sessionId) {
+        sessionStorage.setItem('sessionId', result.sessionId);
+      }
+      document.getElementById('mensaje').innerHTML = '🎉 ¡Gracias por participar! Tu color ha sido registrado. 🎨✨<br><a href="perfil.html" style="color: #6a5acd; font-weight: 600; text-decoration: none;">🔍 Ver mi huella digital</a>';
       document.getElementById('mensaje').style.display = 'block';
       document.getElementById('btnCompartir').style.display = 'inline-block';
       this.disabled = true;
@@ -121,3 +192,24 @@ document.getElementById('btnCompartir').addEventListener('click', async function
     copyShareLink();
   }
 });
+
+function handleMouseMove(event) {
+  const cell = getMouseCell(event);
+  if (cell !== null && cell !== lastMouseCell) {
+    mousePattern.push(cell);
+    lastMouseCell = cell;
+  }
+}
+
+function handleScroll() {
+  const scrollTop = window.scrollY;
+  const docHeight = document.body.scrollHeight - window.innerHeight;
+  const scrolled = (scrollTop / docHeight) * 100;
+  if (scrolled > maxScroll) maxScroll = scrolled;
+  
+  // Reiniciar timeout para pausas
+  if (scrollTimeout) clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    pausasScroll++;
+  }, 1500);
+}
