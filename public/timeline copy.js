@@ -135,41 +135,37 @@ async function loadProfileAndRender() {
       const r = await fetch(`/api/perfil/${sessionId}`);
       if (r.ok) profile = await r.json(); else console.warn('Perfil no disponible', r.status);
     } catch (e) { console.warn('Error fetch perfil', e); }
-  } else {
-    // fallback to server-side ip-based profile
-    try {
-      const r = await fetch('/api/mi-perfil');
-      if (r.ok) profile = await r.json();
-    } catch (e) {}
   }
 
-  // Render data cards from the profile (single record)
+  // If profile empty, prepare educational placeholders
+  if (!profile || Object.keys(profile).length === 0) {
+    profile = {
+      currentIp: 'Anónima',
+      timeline: [],
+    };
+  }
+
   renderDatosGrid(profile);
   renderSessionSummary(profile);
-
-  // Fetch timeline entries grouped by IP (server-side)
-  try {
-    const tResp = await fetch('/timeline-data');
-    if (tResp.ok) {
-      const tdata = await tResp.json();
-      renderTimeline(tdata.timeline || []);
-    }
-  } catch (e) { console.warn('No se pudo cargar timeline', e); }
+  renderTimeline(profile.timeline);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('toggle-datos');
   const panel = document.getElementById('panel-datos');
-  if (btn && panel) {
-    btn.addEventListener('click', () => {
-      const open = btn.getAttribute('aria-expanded') === 'true';
-      btn.setAttribute('aria-expanded', String(!open));
-      panel.setAttribute('aria-hidden', String(open));
-      btn.querySelector('.chev').textContent = open ? '▾' : '▴';
-      panel.style.maxHeight = open ? '0' : panel.scrollHeight + 'px';
-      panel.classList.toggle('open', !open);
-    });
-  }
+  btn.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!open));
+    panel.setAttribute('aria-hidden', String(open));
+    btn.querySelector('.chev').textContent = open ? '▾' : '▴';
+    panel.style.maxHeight = open ? '0' : panel.scrollHeight + 'px';
+    panel.classList.toggle('open', !open);
+  });
+
+  // close panel on escape
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') {
+    btn.setAttribute('aria-expanded', 'false'); panel.setAttribute('aria-hidden', 'true'); panel.style.maxHeight = '0'; panel.classList.remove('open'); btn.querySelector('.chev').textContent = '▾';
+  }});
 
   loadProfileAndRender();
 });

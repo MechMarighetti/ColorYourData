@@ -161,10 +161,15 @@ async function cargarPorcentajes() {
     const respuesta = await fetch('/api/stats');
     if (!respuesta.ok) return;
     const stats = await respuesta.json();
+    const total = stats.total_respuestas || 0;
+    const colores = stats.colores || [];
+    const map = {};
+    colores.forEach(c => { map[c.color.toUpperCase()] = c.cantidad; });
     document.querySelectorAll('.color-card').forEach(card => {
-      const color = card.dataset.color;
-      if (stats[color] !== undefined) {
-        card.querySelector('.color-porcentaje').textContent = `${stats[color]}% de los votos`;
+      const color = (card.dataset.color || '').toUpperCase();
+      if (total > 0 && map[color] !== undefined) {
+        const pct = Math.round((map[color] / total) * 100);
+        card.querySelector('.color-porcentaje').textContent = `${pct}% de los votos`;
       }
     });
   } catch (error) {

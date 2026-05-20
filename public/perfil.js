@@ -2,9 +2,15 @@ document.addEventListener('DOMContentLoaded', async function() {
   const contentDiv = document.getElementById('content');
 
   try {
-    // Llamamos al nuevo endpoint que devuelve la última respuesta completa
-    const response = await fetch('/api/mi-perfil');
-    
+    // Intentamos obtener sessionId y pedir el perfil por id; si no existe, fallback a /api/mi-perfil
+    const sessionId = sessionStorage.getItem('sessionId');
+    let response;
+    if (sessionId) {
+      response = await fetch(`/api/perfil/${sessionId}`);
+    } else {
+      response = await fetch('/api/mi-perfil');
+    }
+
     if (response.status === 404) {
       contentDiv.innerHTML = `
         <div class="error">

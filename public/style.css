@@ -783,4 +783,88 @@ button:disabled {
   from { width: 0; }
 }
 
+/* Timeline - aesthetic cute additions */
+:root{
+  --rosa: #FFB3BA;
+  --lila: #E8BAFF;
+  --menta: #BAFFC9;
+  --celeste: #BAE1FF;
+  --amarillo: #FFFFBA;
+  --fucsia: #FF6F91;
+  --blanco: #FFFFFF;
+  --sombra: 0 4px 15px rgba(0,0,0,0.05);
+  --card-bg: rgba(255,255,255,0.96);
+}
+
+.timeline-card {
+  border-radius: 28px;
+  padding: 28px;
+  position: relative;
+  overflow: visible;
+}
+
+.header-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.decor-icons{ font-size:1.25rem; opacity:0.9 }
+
+.datos-recolectados { margin: 18px 0 10px; text-align: center; }
+.accordion-btn {
+  display:inline-flex; align-items:center; gap:10px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,245,250,0.8));
+  border: 1px solid rgba(123,92,255,0.08);
+  padding: 10px 16px; border-radius: 999px; cursor: pointer; font-weight:700; color:#5d4b8a;
+  box-shadow: var(--sombra);
+}
+.accordion-btn .chev{ margin-left:8px; transition: transform .25s ease }
+.accordion-panel{ max-height:0; overflow:hidden; transition: max-height 0.35s ease; margin-top:12px; }
+.accordion-panel.open{ transition: max-height 0.45s cubic-bezier(.2,.9,.2,1); }
+
+.datos-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
+.data-card{ background:var(--card-bg); border-radius:14px; padding:12px; text-align:left; box-shadow: var(--sombra); border:1px solid rgba(123,92,255,0.06); }
+.data-title{ font-weight:800; color:#4a3f72; display:flex; align-items:center; gap:8px; }
+.data-title .emoji{ font-size:1.1rem }
+.data-value{ margin-top:8px; font-weight:700; color:#2f2948 }
+.data-desc{ margin-top:8px; font-size:0.9rem; color:#7a6f8f }
+
+.timeline-section{ margin-top:20px }
+.section-title{ color:#6a5acd; margin-bottom:10px; text-align:center }
+
+.timeline-container{ position:relative; padding:20px 0 10px; }
+.timeline-line{ left:50%; width:6px; background: linear-gradient(to bottom, var(--lila), var(--rosa)); border-radius:4px; }
+
+.timeline-item{ display:flex; align-items:center; gap:18px; margin: 18px 0; position:relative; }
+.timeline-dot{ width:34px; height:34px; border-radius:50%; border:4px solid var(--blanco); position:relative; left:50%; transform: translateX(50%); z-index:2 }
+.timeline-content-card{ display:flex; align-items:center; gap:14px; background:var(--card-bg); padding:12px 14px; border-radius:16px; box-shadow: var(--sombra); width: calc(50% - 60px); }
+.sample-circle{ width:56px; height:56px; border-radius:50%; border:3px solid rgba(255,255,255,0.6); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+.details{ display:flex; flex-direction:column; }
+.color-name{ font-weight:800; color:#3f325f }
+.color-meta{ font-size:0.9rem; color:#7b6d92 }
+
+.timeline-item:nth-child(odd) .timeline-content-card{ margin-left: 24px; }
+.timeline-item:nth-child(even) .timeline-content-card{ margin-right: 24px; margin-left:auto }
+
+.session-summary{ margin-top:18px }
+.summary-row{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap }
+.summary-card{ background:linear-gradient(90deg, #fff, #fffaf9); padding:12px 16px; border-radius:14px; box-shadow: var(--sombra); display:flex; gap:10px; align-items:center; border:1px solid rgba(255,111,145,0.06) }
+.sum-emoji{ font-size:1.3rem }
+.sum-label{ color:#6b5aa7; font-weight:700 }
+.sum-value{ font-weight:800; color:#3b2b8f }
+
+.btn-link{ display:inline-block; margin:8px; padding:10px 14px; border-radius:999px; background:linear-gradient(90deg,#fff,#fffaf7); border:1px solid rgba(123,92,255,0.06); color:#6a5acd; font-weight:700; text-decoration:none }
+
+.empty-message{ text-align:center; color:#6a5acd; padding:18px; background: #fff8fb; border-radius:14px; border:1px solid rgba(255,111,145,0.06) }
+
+@media (max-width: 980px) {
+  .datos-grid{ grid-template-columns: repeat(3, 1fr); }
+  .timeline-content-card{ width: calc(60% - 60px); }
+}
+
+@media (max-width: 680px) {
+  .datos-grid{ grid-template-columns: repeat(2, 1fr); }
+  .timeline-line{ left:20px; transform:none }
+  .timeline-item{ flex-direction:row; }
+  .timeline-content-card{ width: calc(100% - 120px); margin-left: 36px }
+  .timeline-dot{ left:12px; transform:none }
+}
+
+
 

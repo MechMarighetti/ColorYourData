@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   const contentDiv = document.getElementById('content');
 
   try {
-    const response = await fetch('/stats-data');
+    const response = await fetch('/api/stats');
     
     if (!response.ok) {
       throw new Error('Error al cargar estadísticas');
@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     const data = await response.json();
     
-    // Verificar si hay datos reales (total > 0 y al menos un color)
-    if (!data.total || data.total === 0 || !data.colors || data.colors.length === 0) {
+    // Verificar si hay datos reales (total_respuestas > 0 y al menos un color)
+    if (!data.total_respuestas || data.total_respuestas === 0 || !data.colores || data.colores.length === 0) {
       contentDiv.innerHTML = `
         <div class="error">
           🎨 Aún no hay respuestas suficientes para mostrar estadísticas. ¡Sé el primero en participar!
@@ -47,15 +47,16 @@ function renderStats(data) {
   html += `
     <div class="stat-box">
       <h3>Total de Respuestas</h3>
-      <div class="value">${data.total}</div>
+      <div class="value">${data.total_respuestas}</div>
     </div>
   `;
   
   // Participantes únicos (IPs distintas)
+  // Not provided in unified API by default; show placeholder
   html += `
     <div class="stat-box">
       <h3>Participantes Únicos</h3>
-      <div class="value">${data.unique_ips || 0}</div>
+      <div class="value">--</div>
     </div>
   `;
   
@@ -85,12 +86,12 @@ function renderStats(data) {
   
   html += '</div>';
   
-  // Gráfico de Colores (usando data.colors y .count)
+  // Gráfico de Colores (usando data.colores y .cantidad)
   html += '<h2>🎨 Distribución de Colores</h2>';
   html += '<div class="chart-container"><canvas id="chartColores"></canvas></div>';
   
   // Gráfico de Países (si hay datos)
-  if (data.countries && data.countries.length > 0) {
+  if (data.paises && data.paises.length > 0) {
     html += '<h2>🌍 Top Países</h2>';
     html += '<div class="chart-container"><canvas id="chartPaises"></canvas></div>';
   }
@@ -98,9 +99,9 @@ function renderStats(data) {
   contentDiv.innerHTML = html;
   
   // Renderizar gráficos con la estructura correcta
-  renderChartColores(data.colors);
-  if (data.countries && data.countries.length > 0) {
-    renderChartPaises(data.countries);
+  renderChartColores(data.colores);
+  if (data.paises && data.paises.length > 0) {
+    renderChartPaises(data.paises);
   }
 }
 
@@ -114,7 +115,7 @@ function renderChartColores(colores) {
   if (!ctx) return;
 
   const labels = colores.map(c => c.color || 'Desconocido');
-  const data = colores.map(c => c.count || 0);
+  const data = colores.map(c => c.cantidad || 0);
   const backgroundColors = colores.map(c => c.color || '#cccccc');
 
   chartColores = new Chart(ctx, {
@@ -167,7 +168,7 @@ function renderChartPaises(paises) {
   // Tomar top 10 (aunque el backend ya limita a 8, por seguridad)
   const topPaises = paises.slice(0, 10);
   const labels = topPaises.map(p => p.country || 'Desconocido');
-  const data = topPaises.map(p => p.count || 0);
+  const data = topPaises.map(p => p.cantidad || 0);
 
   chartPaises = new Chart(ctx, {
     type: 'bar',
