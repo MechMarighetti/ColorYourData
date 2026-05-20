@@ -121,15 +121,58 @@ document.getElementById('btnIniciar').addEventListener('click', function() {
 });
 
 // Colores
-document.querySelectorAll('.color-option').forEach(option => {
-  option.addEventListener('click', function() {
-    clicsErrarios++;
-    colorSeleccionado = this.dataset.color;
-    document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
-    this.classList.add('selected');
-    document.getElementById('btnGuardar').disabled = false;
+function actualizarBotonGuardar() {
+  const boton = document.getElementById('btnGuardar');
+  if (colorSeleccionado) {
+    boton.disabled = false;
+    boton.style.display = 'block';
+    boton.classList.add('visible');
+  } else {
+    boton.disabled = true;
+    boton.style.display = 'none';
+    boton.classList.remove('visible');
+  }
+}
+
+function seleccionarColor(card) {
+  clicsErrarios++;
+  colorSeleccionado = card.dataset.color;
+  document.querySelectorAll('.color-card').forEach(opt => opt.classList.remove('selected'));
+  card.classList.add('selected');
+  actualizarBotonGuardar();
+}
+
+function manejarTeclaColor(event) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    seleccionarColor(event.currentTarget);
+  }
+}
+
+document.querySelectorAll('.color-card').forEach(card => {
+  card.addEventListener('click', function() {
+    seleccionarColor(this);
   });
+  card.addEventListener('keydown', manejarTeclaColor);
 });
+
+async function cargarPorcentajes() {
+  try {
+    const respuesta = await fetch('/api/stats');
+    if (!respuesta.ok) return;
+    const stats = await respuesta.json();
+    document.querySelectorAll('.color-card').forEach(card => {
+      const color = card.dataset.color;
+      if (stats[color] !== undefined) {
+        card.querySelector('.color-porcentaje').textContent = `${stats[color]}% de los votos`;
+      }
+    });
+  } catch (error) {
+    console.log('No se pudieron cargar porcentajes:', error);
+  }
+}
+
+cargarPorcentajes();
 
 // Guardar
 document.getElementById('btnGuardar').addEventListener('click', async function() {
