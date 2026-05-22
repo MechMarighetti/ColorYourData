@@ -1,8 +1,10 @@
+
+
 // server.js
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
-
+require('dotenv').config({ path: '.env.local' });
 const app = express();
 
 // Configuración de middlewares
@@ -14,7 +16,7 @@ app.use(express.json()); // Para parsear el cuerpo de las peticiones JSON
 // Es crucial que estos nombres coincidan exactamente.
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 if (!supabaseUrl || !supabaseAnonKey) {
     console.error("❌ Error crítico: Las variables de entorno SUPABASE_URL y SUPABASE_ANON_KEY no están definidas.");
     // En un entorno de producción, querrás manejar esto de otra forma,
