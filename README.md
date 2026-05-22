@@ -17,9 +17,9 @@ npm install
   cp .env.example .env.local
   ```
 - Completar con tus credenciales desde **Settings → API**:
-  - `SUPABASE_URL`: Project URL
-  - `SUPABASE_KEY`: anon public key
-  - `SUPABASE_SERVICE_KEY`: service_role key
+  - `CYD_SUPABASE_URL`: Project URL
+  - `CYD_SUPABASE_KEY`: anon public key
+  - `CYD_SUPABASE_SERVICE_KEY`: service_role key
 
 ### 3. Crear tablas en Supabase
 Ir a **SQL Editor** y ejecutar:
