@@ -7,8 +7,10 @@ const path = require('path');
 require('dotenv').config({ path: '.env.local' });
 const app = express();
 
+
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
 // Configuración de middlewares
-app.use(express.static('public')); // Servir archivos estáticos como antes
 app.use(express.json()); // Para parsear el cuerpo de las peticiones JSON
 
 // --- Inicialización de Supabase ---
@@ -346,9 +348,8 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
-// Ruta principal para servir el index.html (si no lo sirve express.static automáticamente en la raíz)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 // --- Exportar la app para Vercel ---
@@ -359,5 +360,6 @@ if (require.main === module) {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
         console.log(`✅ Servidor con Supabase corriendo localmente en http://localhost:${PORT}`);
+        console.log(`📁 Sirviendo archivos estáticos desde: ${publicPath}`);
     });
 }
