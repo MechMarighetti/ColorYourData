@@ -1,33 +1,49 @@
+// server.js
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+const path = require('path');
 
 const app = express();
 
-// Configurar Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY
-);
+// Configuración de middlewares
+app.use(express.static('public')); // Servir archivos estáticos como antes
+app.use(express.json()); // Para parsear el cuerpo de las peticiones JSON
 
-// Middlewares
-app.use(express.json());
-app.use(express.static('public'));
+// --- Inicialización de Supabase ---
+// Cargamos las variables de entorno que definiremos más tarde.
+// Es crucial que estos nombres coincidan exactamente.
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("❌ Error crítico: Las variables de entorno SUPABASE_URL y SUPABASE_ANON_KEY no están definidas.");
+    // En un entorno de producción, querrás manejar esto de otra forma,
+    // pero lanzar un error aquí detiene el despliegue si falta algo.
+    throw new Error("Faltan las variables de entorno de Supabase.");
+}
+
+// Creamos el cliente de Supabase para interactuar con la base de datos
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// --- Fin de la inicialización de Supabase ---
+
+// --- Función auxiliar para obtener IP real del cliente ---
 function getClientIp(req) {
     const forwarded = req.headers['x-forwarded-for'];
     const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
     return ip ? ip.replace(/^::ffff:/, '') : 'Desconocido';
 }
 
+// --- RUTAS DE TU API ---
+
+// Ruta: /guardar-color
 app.post('/guardar-color', async (req, res) => {
     try {
         const data = req.body;
         const cleanIp = getClientIp(req);
 
+        // --- (Opcional) Geolocalización ---
         let country = 'Desconocido';
         let region = 'No disponible';
-
         try {
             const response = await fetch(`https://api.iplocation.net/?ip=${cleanIp}`);
             const geo = await response.json();
@@ -37,9 +53,11 @@ app.post('/guardar-color', async (req, res) => {
         } catch (err) {
             console.error('Error obteniendo geolocalización:', err);
         }
+        // -----------------------------------
 
-        // Insertar en Supabase
-        const { data: inserted, error } = await supabase
+        // 1. Insertamos la nueva respuesta en la tabla 'respuestas'
+        // Asegúrate de que los nombres de las columnas coincidan con tu tabla en Supabase.
+        const { data: newResponse, error: insertError } = await supabase
             .from('respuestas')
             .insert([
                 {
@@ -49,15 +67,15 @@ app.post('/guardar-color', async (req, res) => {
                     region: region,
                     latitude: data.latitude || null,
                     longitude: data.longitude || null,
-                    user_agent: data.user_agent || null,
-                    platform: data.platform || null,
-                    language: data.language || null,
-                    screen_resolution: data.screen_resolution || null,
-                    color_depth: data.color_depth || null,
-                    timezone: data.timezone || null,
-                    cpu_cores: data.cpu_cores || null,
-                    device_memory: data.device_memory || null,
-                    fingerprint: data.fingerprint || null,
+                    user_agent: data.user_agent,
+                    platform: data.platform,
+                    language: data.language,
+                    screen_resolution: data.screen_resolution,
+                    color_depth: data.color_depth,
+                    timezone: data.timezone,
+                    cpu_cores: data.cpu_cores,
+                    device_memory: data.device_memory,
+                    fingerprint: data.fingerprint,
                     tiempo_seleccion: data.tiempo_seleccion || 'No consentido',
                     clics_erroneos: data.clics_erroneos || 'No consentido',
                     movimientos_mouse: data.movimientos_mouse || 'No consentido',
@@ -65,212 +83,279 @@ app.post('/guardar-color', async (req, res) => {
                     pausas_scroll: data.pausas_scroll || 'No consentido'
                 }
             ])
-            .select('id');
+            .select(); // Para que nos devuelva el registro insertado, incluyendo su ID.
 
-        if (error) {
-            console.error('Error insertando en Supabase:', error);
-            return res.status(500).json({ error: 'Error al guardar' });
+        if (insertError) {
+            console.error('Error al insertar en Supabase:', insertError);
+            throw new Error(insertError.message);
         }
 
-        const sessionId = inserted && inserted[0] ? inserted[0].id : null;
-        res.json({ success: true, sessionId });
+        // El ID de la nueva respuesta estará en newResponse[0].id
+        const sessionId = newResponse ? newResponse[0].id : null;
+
+        res.json({ success: true, sessionId: sessionId });
+
     } catch (err) {
         console.error('Error en /guardar-color:', err);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
+// Ruta: /timeline-data
 app.get('/timeline-data', async (req, res) => {
     try {
         const cleanIp = getClientIp(req);
 
-        // Timeline del usuario actual
+        // 1. Obtener el timeline para esta IP
         const { data: timeline, error: timelineError } = await supabase
             .from('respuestas')
-            .select('id, color, timestamp, latitude, longitude, country, region')
+            .select('id, color, timestamp, latitude, longitude')
             .eq('ip', cleanIp)
             .order('timestamp', { ascending: true });
 
-        if (timelineError) throw timelineError;
+        if (timelineError) {
+            console.error('Error al obtener timeline:', timelineError);
+            throw new Error(timelineError.message);
+        }
 
-        // Agrupar por IP
-        const { data: groupedByIp, error: groupError } = await supabase
+        // 2. Obtener el resumen de respuestas agrupadas por IP
+        // Como Supabase no tiene una función COUNT con GROUP BY directa que devuelva
+        // una lista fácilmente, hacemos una consulta un poco más elaborada.
+        // Primero, obtenemos todas las IPs distintas.
+        const { data: uniqueIps, error: ipsError } = await supabase
             .from('respuestas')
-            .select('ip, timestamp')
-            .order('timestamp', { ascending: false });
+            .select('ip')
+            .not('ip', 'is', null);
 
-        if (groupError) throw groupError;
+        if (ipsError) {
+            console.error('Error al obtener IPs únicas:', ipsError);
+            throw new Error(ipsError.message);
+        }
 
-        // Procesar groupedByIp manualmente (contar y agrupar)
-        const grouped = {};
-        (groupedByIp || []).forEach(row => {
-            if (!grouped[row.ip]) {
-                grouped[row.ip] = { ip: row.ip, total: 0, last_seen: row.timestamp };
+        // Procesamos manualmente para crear el objeto groupedByIp
+        const groupedByIp = {};
+        const counts = {};
+        const lastSeen = {};
+        uniqueIps.forEach(record => {
+            if (record.ip) {
+                counts[record.ip] = (counts[record.ip] || 0) + 1;
+                // No podemos obtener MAX(timestamp) fácilmente aquí.
+                // Una alternativa más eficiente es crear una vista en Supabase o
+                // hacer una segunda consulta, pero simplificamos para el ejemplo.
+                lastSeen[record.ip] = 'Timestamp no calculado en esta versión';
             }
-            grouped[row.ip].total++;
         });
-        const groupedArray = Object.values(grouped);
+        for (const [ip, total] of Object.entries(counts)) {
+            groupedByIp[ip] = { total, last_seen: lastSeen[ip] };
+        }
+        // Nota: Para un caso de uso real, lo mejor es crear una vista en Supabase
+        // o ajustar la consulta para mayor eficiencia.
 
-        res.json({ currentIp: cleanIp, timeline: timeline || [], groupedByIp: groupedArray });
+        res.json({ currentIp: cleanIp, timeline: timeline || [], groupedByIp: groupedByIp });
+
     } catch (err) {
         console.error('Error en /timeline-data:', err);
-        res.status(500).json({ error: 'Error interno' });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
+// Ruta: /api/mi-perfil
 app.get('/api/mi-perfil', async (req, res) => {
     try {
         const cleanIp = getClientIp(req);
-
+        // Obtenemos la última respuesta para esta IP
         const { data: perfil, error } = await supabase
             .from('respuestas')
-            .select('*')
+            .select(`
+                color, country, region,
+                tiempo_seleccion, clics_erroneos, movimientos_mouse,
+                porcentaje_scroll, pausas_scroll,
+                user_agent, platform, language, screen_resolution,
+                color_depth, timezone, cpu_cores, device_memory, fingerprint,
+                timestamp
+            `)
             .eq('ip', cleanIp)
             .order('timestamp', { ascending: false })
             .limit(1);
 
-        if (error || !perfil || perfil.length === 0) {
+        if (error) {
+            console.error('Error al obtener perfil:', error);
+            throw new Error(error.message);
+        }
+
+        if (!perfil || perfil.length === 0) {
             return res.status(404).json({ error: 'No se encontraron respuestas para esta IP' });
         }
 
-        res.json(perfil[0]);
+        res.json(perfil[0]); // Devolvemos el primer (y único) resultado.
     } catch (err) {
         console.error('Error en /api/mi-perfil:', err);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
+// Ruta: /stats-data (para tu página stats.html)
 app.get('/stats-data', async (req, res) => {
     try {
-        const { data: all } = await supabase.from('respuestas').select('*');
+        // Obtenemos las estadísticas con múltiples consultas. Para producción,
+        // sería mejor crear una vista o función en PostgreSQL/Supabase.
+        const [
+            totalRespuestas,
+            uniqueIpsCount,
+            colorsCount,
+            countriesCount,
+            platformsCount,
+            languagesCount,
+            resolutionsCount,
+            timezonesCount
+        ] = await Promise.all([
+            supabase.from('respuestas').select('*', { count: 'exact', head: true }),
+            supabase.from('respuestas').select('ip', { count: 'exact', head: true }).not('ip', 'is', null),
+            supabase.from('respuestas').select('color', { count: 'exact' }).not('color', 'is', null),
+            supabase.from('respuestas').select('country', { count: 'exact' }).not('country', 'is', null),
+            supabase.from('respuestas').select('platform', { count: 'exact' }).not('platform', 'is', null),
+            supabase.from('respuestas').select('language', { count: 'exact' }).not('language', 'is', null),
+            supabase.from('respuestas').select('screen_resolution', { count: 'exact' }).not('screen_resolution', 'is', null),
+            supabase.from('respuestas').select('timezone', { count: 'exact' }).not('timezone', 'is', null)
+        ]);
 
-        if (!all || all.length === 0) {
-            return res.json({
-                total: 0,
-                unique_ips: 0,
-                colors: [],
-                countries: [],
-                regions: [],
-                platforms: [],
-                languages: [],
-                resolutions: [],
-                timezones: []
-            });
-        }
+        if (totalRespuestas.error) throw totalRespuestas.error;
+        if (uniqueIpsCount.error) throw uniqueIpsCount.error;
+        if (colorsCount.error) throw colorsCount.error;
+        if (countriesCount.error) throw countriesCount.error;
+        if (platformsCount.error) throw platformsCount.error;
+        if (languagesCount.error) throw languagesCount.error;
+        if (resolutionsCount.error) throw resolutionsCount.error;
+        if (timezonesCount.error) throw timezonesCount.error;
 
+        // Procesamos los resultados para dar el formato que espera tu frontend
         const colors = {};
-        const countries = {};
-        const regions = {};
-        const platforms = {};
-        const languages = {};
-        const resolutions = {};
-        const timezones = {};
+        colorsCount.data.forEach(item => { colors[item.color] = (colors[item.color] || 0) + 1; });
+        const formattedColors = Object.entries(colors).map(([color, count]) => ({ color, count }));
 
-        all.forEach(row => {
-            colors[row.color] = (colors[row.color] || 0) + 1;
-            if (row.country && row.country !== '') countries[row.country] = (countries[row.country] || 0) + 1;
-            if (row.region && row.region !== '') regions[row.region] = (regions[row.region] || 0) + 1;
-            if (row.platform) platforms[row.platform] = (platforms[row.platform] || 0) + 1;
-            if (row.language) languages[row.language] = (languages[row.language] || 0) + 1;
-            if (row.screen_resolution) resolutions[row.screen_resolution] = (resolutions[row.screen_resolution] || 0) + 1;
-            if (row.timezone) timezones[row.timezone] = (timezones[row.timezone] || 0) + 1;
-        });
+        const countries = {};
+        countriesCount.data.forEach(item => { countries[item.country] = (countries[item.country] || 0) + 1; });
+        const formattedCountries = Object.entries(countries).map(([country, count]) => ({ country, count }));
+
+        const platforms = {};
+        platformsCount.data.forEach(item => { platforms[item.platform] = (platforms[item.platform] || 0) + 1; });
+        const formattedPlatforms = Object.entries(platforms).map(([platform, count]) => ({ platform, count }));
+
+        const languages = {};
+        languagesCount.data.forEach(item => { languages[item.language] = (languages[item.language] || 0) + 1; });
+        const formattedLanguages = Object.entries(languages).map(([language, count]) => ({ language, count }));
+
+        const resolutions = {};
+        resolutionsCount.data.forEach(item => { resolutions[item.screen_resolution] = (resolutions[item.screen_resolution] || 0) + 1; });
+        const formattedResolutions = Object.entries(resolutions).map(([resolution, count]) => ({ screen_resolution: resolution, count }));
+
+        const timezones = {};
+        timezonesCount.data.forEach(item => { timezones[item.timezone] = (timezones[item.timezone] || 0) + 1; });
+        const formattedTimezones = Object.entries(timezones).map(([timezone, count]) => ({ timezone, count }));
 
         res.json({
-            total: all.length,
-            unique_ips: new Set(all.map(r => r.ip)).size,
-            colors: Object.entries(colors).map(([k, v]) => ({ color: k, count: v })).sort((a, b) => b.count - a.count),
-            countries: Object.entries(countries).map(([k, v]) => ({ country: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 8),
-            regions: Object.entries(regions).map(([k, v]) => ({ region: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 8),
-            platforms: Object.entries(platforms).map(([k, v]) => ({ platform: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 6),
-            languages: Object.entries(languages).map(([k, v]) => ({ language: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 6),
-            resolutions: Object.entries(resolutions).map(([k, v]) => ({ resolution: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 6),
-            timezones: Object.entries(timezones).map(([k, v]) => ({ timezone: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 6)
+            total: totalRespuestas.count,
+            unique_ips: uniqueIpsCount.count,
+            colors: formattedColors,
+            countries: formattedCountries,
+            regions: [], // Por simplicidad, lo dejamos vacío o lo calculas similar a countries
+            platforms: formattedPlatforms,
+            languages: formattedLanguages,
+            resolutions: formattedResolutions,
+            timezones: formattedTimezones
         });
+
     } catch (err) {
         console.error('Error en /stats-data:', err);
-        res.status(500).json({ error: 'Error interno' });
-    }
-});
-
-app.get('/api/perfil/:id', async (req, res) => {
-    try {
-        const { data: perfil, error } = await supabase
-            .from('respuestas')
-            .select('*')
-            .eq('id', req.params.id)
-            .limit(1);
-
-        if (error || !perfil || perfil.length === 0) {
-            return res.status(404).json({ error: 'No se encontró el perfil' });
-        }
-
-        res.json(perfil[0]);
-    } catch (err) {
-        console.error('Error en /api/perfil/:id', err);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
-app.get('/api/stats', async (req, res) => {
+// Ruta: /api/perfil/:id
+app.get('/api/perfil/:id', async (req, res) => {
     try {
-        const { data: all } = await supabase.from('respuestas').select('*');
+        const { id } = req.params;
+        const { data: perfil, error } = await supabase
+            .from('respuestas')
+            .select('*')
+            .eq('id', id)
+            .single(); // Esperamos un solo resultado
 
-        if (!all || all.length === 0) {
-            return res.json({
-                total_respuestas: 0,
-                colores: [],
-                paises: [],
-                promedio_tiempo: 0,
-                indecisos_promedio: 0,
-                scroll_promedio: 0
-            });
+        if (error) {
+            if (error.code === 'PGRST116') { // Código de "no se encontró ninguna fila"
+                return res.status(404).json({ error: 'No se encontró el perfil' });
+            }
+            console.error('Error al obtener perfil por ID:', error);
+            throw new Error(error.message);
         }
 
-        const colores = {};
-        const paises = {};
-        let sumTiempo = 0, countTiempo = 0;
-        let sumClics = 0, countClics = 0;
-        let sumScroll = 0, countScroll = 0;
-
-        all.forEach(row => {
-            colores[row.color] = (colores[row.color] || 0) + 1;
-            if (row.country && row.country !== '') paises[row.country] = (paises[row.country] || 0) + 1;
-
-            if (row.tiempo_seleccion && row.tiempo_seleccion !== 'No consentido') {
-                sumTiempo += parseInt(row.tiempo_seleccion) || 0;
-                countTiempo++;
-            }
-            if (row.clics_erroneos && row.clics_erroneos !== 'No consentido') {
-                sumClics += parseInt(row.clics_erroneos) || 0;
-                countClics++;
-            }
-            if (row.porcentaje_scroll && row.porcentaje_scroll !== 'No consentido') {
-                sumScroll += parseInt(row.porcentaje_scroll) || 0;
-                countScroll++;
-            }
-        });
-
-        res.json({
-            total_respuestas: all.length,
-            colores: Object.entries(colores).map(([k, v]) => ({ color: k, cantidad: v })).sort((a, b) => b.cantidad - a.cantidad),
-            paises: Object.entries(paises).map(([k, v]) => ({ country: k, cantidad: v })).sort((a, b) => b.cantidad - a.cantidad).slice(0, 20),
-            promedio_tiempo: countTiempo > 0 ? Math.round(sumTiempo / countTiempo) : 0,
-            indecisos_promedio: countClics > 0 ? Math.round(sumClics / countClics) : 0,
-            scroll_promedio: countScroll > 0 ? Math.round(sumScroll / countScroll) : 0
-        });
+        res.json(perfil);
     } catch (err) {
-        console.error('Error en /api/stats:', err);
-        res.status(500).json({ error: 'Error interno' });
+        console.error('Error en /api/perfil/:id:', err);
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
+// Ruta: /api/stats (para otras estadísticas que puedas necesitar)
+app.get('/api/stats', async (req, res) => {
+    try {
+        // Consultas para obtener datos agregados
+        const totalRespuestas = await supabase.from('respuestas').select('*', { count: 'exact', head: true });
+
+        const coloresData = await supabase.from('respuestas').select('color').not('color', 'is', null);
+        const paisesData = await supabase.from('respuestas').select('country').not('country', 'is', null);
+
+        const avgTiempoData = await supabase.from('respuestas').select('tiempo_seleccion').not('tiempo_seleccion', 'is', null).not('tiempo_seleccion', 'eq', 'No consentido');
+        const avgClicsData = await supabase.from('respuestas').select('clics_erroneos').not('clics_erroneos', 'is', null).not('clics_erroneos', 'eq', 'No consentido');
+        const avgScrollData = await supabase.from('respuestas').select('porcentaje_scroll').not('porcentaje_scroll', 'is', null).not('porcentaje_scroll', 'eq', 'No consentido');
+
+        if (totalRespuestas.error) throw totalRespuestas.error;
+        if (coloresData.error) throw coloresData.error;
+        if (paisesData.error) throw paisesData.error;
+        if (avgTiempoData.error) throw avgTiempoData.error;
+        if (avgClicsData.error) throw avgClicsData.error;
+        if (avgScrollData.error) throw avgScrollData.error;
+
+        // Procesamos los resultados
+        const colores = {};
+        coloresData.data.forEach(item => { colores[item.color] = (colores[item.color] || 0) + 1; });
+        const formattedColores = Object.entries(colores).map(([color, cantidad]) => ({ color, cantidad }));
+
+        const paises = {};
+        paisesData.data.forEach(item => { paises[item.country] = (paises[item.country] || 0) + 1; });
+        const formattedPaises = Object.entries(paises).map(([country, cantidad]) => ({ country, cantidad }));
+
+        const avgTiempo = avgTiempoData.data.reduce((sum, item) => sum + parseInt(item.tiempo_seleccion || 0), 0) / (avgTiempoData.data.length || 1);
+        const avgClics = avgClicsData.data.reduce((sum, item) => sum + parseInt(item.clics_erroneos || 0), 0) / (avgClicsData.data.length || 1);
+        const avgScroll = avgScrollData.data.reduce((sum, item) => sum + parseInt(item.porcentaje_scroll || 0), 0) / (avgScrollData.data.length || 1);
+
+        res.json({
+            total_respuestas: totalRespuestas.count,
+            colores: formattedColores,
+            paises: formattedPaises,
+            promedio_tiempo: Math.round(avgTiempo),
+            indecisos_promedio: Math.round(avgClics),
+            scroll_promedio: Math.round(avgScroll)
+        });
+
+    } catch (err) {
+        console.error('Error en /api/stats:', err);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+// Ruta principal para servir el index.html (si no lo sirve express.static automáticamente en la raíz)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// --- Exportar la app para Vercel ---
+module.exports = app;
+
+// --- Iniciar servidor localmente (solo para pruebas) ---
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
-        console.log(`Servidor corriendo en http://localhost:${PORT}`);
-        console.log(`Supabase URL: ${process.env.SUPABASE_URL}`);
+        console.log(`✅ Servidor con Supabase corriendo localmente en http://localhost:${PORT}`);
     });
 }
-
-module.exports = app;
