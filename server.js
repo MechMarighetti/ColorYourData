@@ -1,83 +1,18 @@
 const express = require('express');
-const fs = require('fs');
-const initSqlJs = require('sql.js');
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
 const app = express();
-app.use(express.static('public'));
+
+// Configurar Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY
+);
+
+// Middlewares
 app.use(express.json());
-
-const DB_PATH = '/tmp/encuesta.db';
-let db;
-
-function prepareAll(sql, params = []) {
-    const stmt = db.prepare(sql);
-    stmt.bind(params);
-    const rows = [];
-    while (stmt.step()) {
-        rows.push(stmt.getAsObject());
-    }
-    stmt.free();
-    return rows;
-}
-
-function prepareGet(sql, params = []) {
-    const stmt = db.prepare(sql);
-    stmt.bind(params);
-    const row = stmt.step() ? stmt.getAsObject() : null;
-    stmt.free();
-    return row;
-}
-
-function persistDatabase() {
-    try {
-        fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
-    } catch (err) {
-        console.error('No se pudo persistir la base de datos en /tmp:', err);
-    }
-}
-
-async function initDB() {
-    const SQL = await initSqlJs();
-
-    try {
-        if (fs.existsSync(DB_PATH)) {
-            const fileBuffer = fs.readFileSync(DB_PATH);
-            db = new SQL.Database(new Uint8Array(fileBuffer));
-        } else {
-            db = new SQL.Database();
-        }
-    } catch (err) {
-        console.error('No se pudo cargar DB desde /tmp, creando en memoria:', err);
-        db = new SQL.Database();
-    }
-
-    db.run(`CREATE TABLE IF NOT EXISTS respuestas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        color TEXT NOT NULL,
-        ip TEXT,
-        country TEXT,
-        region TEXT,
-        latitude TEXT,
-        longitude TEXT,
-        user_agent TEXT,
-        platform TEXT,
-        language TEXT,
-        screen_resolution TEXT,
-        color_depth TEXT,
-        timezone TEXT,
-        cpu_cores TEXT,
-        device_memory TEXT,
-        fingerprint TEXT,
-        tiempo_seleccion TEXT,
-        clics_erroneos TEXT,
-        movimientos_mouse TEXT,
-        porcentaje_scroll TEXT,
-        pausas_scroll TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    persistDatabase();
-}
+app.use(express.static('public'));
 
 function getClientIp(req) {
     const forwarded = req.headers['x-forwarded-for'];
@@ -103,33 +38,41 @@ app.post('/guardar-color', async (req, res) => {
             console.error('Error obteniendo geolocalización:', err);
         }
 
-        db.run(
-            `INSERT INTO respuestas (
-                color, ip, country, region, latitude, longitude,
-                user_agent, platform, language, screen_resolution, color_depth,
-                timezone, cpu_cores, device_memory, fingerprint,
-                tiempo_seleccion, clics_erroneos, movimientos_mouse, porcentaje_scroll, pausas_scroll
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                data.color, cleanIp, country, region,
-                data.latitude || null, data.longitude || null,
-                data.user_agent, data.platform, data.language,
-                data.screen_resolution, data.color_depth, data.timezone,
-                data.cpu_cores, data.device_memory, data.fingerprint,
-                data.tiempo_seleccion || 'No consentido',
-                data.clics_erroneos || 'No consentido',
-                data.movimientos_mouse || 'No consentido',
-                data.porcentaje_scroll || 'No consentido',
-                data.pausas_scroll || 'No consentido'
-            ]
-        );
+        // Insertar en Supabase
+        const { data: inserted, error } = await supabase
+            .from('respuestas')
+            .insert([
+                {
+                    color: data.color,
+                    ip: cleanIp,
+                    country: country,
+                    region: region,
+                    latitude: data.latitude || null,
+                    longitude: data.longitude || null,
+                    user_agent: data.user_agent || null,
+                    platform: data.platform || null,
+                    language: data.language || null,
+                    screen_resolution: data.screen_resolution || null,
+                    color_depth: data.color_depth || null,
+                    timezone: data.timezone || null,
+                    cpu_cores: data.cpu_cores || null,
+                    device_memory: data.device_memory || null,
+                    fingerprint: data.fingerprint || null,
+                    tiempo_seleccion: data.tiempo_seleccion || 'No consentido',
+                    clics_erroneos: data.clics_erroneos || 'No consentido',
+                    movimientos_mouse: data.movimientos_mouse || 'No consentido',
+                    porcentaje_scroll: data.porcentaje_scroll || 'No consentido',
+                    pausas_scroll: data.pausas_scroll || 'No consentido'
+                }
+            ])
+            .select('id');
 
-        const lastIdResult = db.exec('SELECT last_insert_rowid() as id');
-        const sessionId = lastIdResult && lastIdResult[0] && lastIdResult[0].values && lastIdResult[0].values[0]
-            ? lastIdResult[0].values[0][0]
-            : null;
+        if (error) {
+            console.error('Error insertando en Supabase:', error);
+            return res.status(500).json({ error: 'Error al guardar' });
+        }
 
-        persistDatabase();
+        const sessionId = inserted && inserted[0] ? inserted[0].id : null;
         res.json({ success: true, sessionId });
     } catch (err) {
         console.error('Error en /guardar-color:', err);
@@ -137,112 +80,112 @@ app.post('/guardar-color', async (req, res) => {
     }
 });
 
-app.get('/timeline-data', (req, res) => {
+app.get('/timeline-data', async (req, res) => {
     try {
         const cleanIp = getClientIp(req);
-        const timeline = prepareAll(
-            'SELECT id, color, timestamp, latitude, longitude FROM respuestas WHERE ip = ? ORDER BY timestamp ASC',
-            [cleanIp]
-        );
-        const groupedByIp = prepareAll(
-            'SELECT ip, COUNT(*) as total, MAX(timestamp) as last_seen FROM respuestas GROUP BY ip ORDER BY last_seen DESC'
-        );
 
-        res.json({ currentIp: cleanIp, timeline, groupedByIp });
+        // Timeline del usuario actual
+        const { data: timeline, error: timelineError } = await supabase
+            .from('respuestas')
+            .select('id, color, timestamp, latitude, longitude, country, region')
+            .eq('ip', cleanIp)
+            .order('timestamp', { ascending: true });
+
+        if (timelineError) throw timelineError;
+
+        // Agrupar por IP
+        const { data: groupedByIp, error: groupError } = await supabase
+            .from('respuestas')
+            .select('ip, timestamp')
+            .order('timestamp', { ascending: false });
+
+        if (groupError) throw groupError;
+
+        // Procesar groupedByIp manualmente (contar y agrupar)
+        const grouped = {};
+        (groupedByIp || []).forEach(row => {
+            if (!grouped[row.ip]) {
+                grouped[row.ip] = { ip: row.ip, total: 0, last_seen: row.timestamp };
+            }
+            grouped[row.ip].total++;
+        });
+        const groupedArray = Object.values(grouped);
+
+        res.json({ currentIp: cleanIp, timeline: timeline || [], groupedByIp: groupedArray });
     } catch (err) {
         console.error('Error en /timeline-data:', err);
         res.status(500).json({ error: 'Error interno' });
     }
 });
 
-app.get('/api/mi-perfil', (req, res) => {
+app.get('/api/mi-perfil', async (req, res) => {
     try {
         const cleanIp = getClientIp(req);
-        const perfil = prepareGet(
-            `SELECT 
-                color, country, region,
-                tiempo_seleccion, clics_erroneos, movimientos_mouse,
-                porcentaje_scroll, pausas_scroll,
-                user_agent, platform, language, screen_resolution,
-                color_depth, timezone, cpu_cores, device_memory, fingerprint,
-                timestamp
-             FROM respuestas
-             WHERE ip = ?
-             ORDER BY timestamp DESC
-             LIMIT 1`,
-            [cleanIp]
-        );
 
-        if (!perfil) {
+        const { data: perfil, error } = await supabase
+            .from('respuestas')
+            .select('*')
+            .eq('ip', cleanIp)
+            .order('timestamp', { ascending: false })
+            .limit(1);
+
+        if (error || !perfil || perfil.length === 0) {
             return res.status(404).json({ error: 'No se encontraron respuestas para esta IP' });
         }
 
-        res.json(perfil);
+        res.json(perfil[0]);
     } catch (err) {
         console.error('Error en /api/mi-perfil:', err);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
-app.get('/stats-data', (req, res) => {
+app.get('/stats-data', async (req, res) => {
     try {
-        const totalRow = prepareGet('SELECT COUNT(*) as total, COUNT(DISTINCT ip) as unique_ips FROM respuestas');
-        const colors = prepareAll('SELECT color, COUNT(*) as count FROM respuestas GROUP BY color ORDER BY count DESC');
-        const countries = prepareAll(`
-            SELECT country, COUNT(*) as count
-            FROM respuestas
-            WHERE country IS NOT NULL AND country != ''
-            GROUP BY country
-            ORDER BY count DESC
-            LIMIT 8
-        `);
-        const regions = prepareAll(`
-            SELECT region, COUNT(*) as count
-            FROM respuestas
-            WHERE region IS NOT NULL AND region != ''
-            GROUP BY region
-            ORDER BY count DESC
-            LIMIT 8
-        `);
-        const platforms = prepareAll(`
-            SELECT platform, COUNT(*) as count
-            FROM respuestas
-            GROUP BY platform
-            ORDER BY count DESC
-            LIMIT 6
-        `);
-        const languages = prepareAll(`
-            SELECT language, COUNT(*) as count
-            FROM respuestas
-            GROUP BY language
-            ORDER BY count DESC
-            LIMIT 6
-        `);
-        const resolutions = prepareAll(`
-            SELECT screen_resolution, COUNT(*) as count
-            FROM respuestas
-            GROUP BY screen_resolution
-            ORDER BY count DESC
-            LIMIT 6
-        `);
-        const timezones = prepareAll(`
-            SELECT timezone, COUNT(*) as count
-            FROM respuestas
-            GROUP BY timezone
-            ORDER BY count DESC
-            LIMIT 6
-        `);
+        const { data: all } = await supabase.from('respuestas').select('*');
+
+        if (!all || all.length === 0) {
+            return res.json({
+                total: 0,
+                unique_ips: 0,
+                colors: [],
+                countries: [],
+                regions: [],
+                platforms: [],
+                languages: [],
+                resolutions: [],
+                timezones: []
+            });
+        }
+
+        const colors = {};
+        const countries = {};
+        const regions = {};
+        const platforms = {};
+        const languages = {};
+        const resolutions = {};
+        const timezones = {};
+
+        all.forEach(row => {
+            colors[row.color] = (colors[row.color] || 0) + 1;
+            if (row.country && row.country !== '') countries[row.country] = (countries[row.country] || 0) + 1;
+            if (row.region && row.region !== '') regions[row.region] = (regions[row.region] || 0) + 1;
+            if (row.platform) platforms[row.platform] = (platforms[row.platform] || 0) + 1;
+            if (row.language) languages[row.language] = (languages[row.language] || 0) + 1;
+            if (row.screen_resolution) resolutions[row.screen_resolution] = (resolutions[row.screen_resolution] || 0) + 1;
+            if (row.timezone) timezones[row.timezone] = (timezones[row.timezone] || 0) + 1;
+        });
 
         res.json({
-            total: totalRow?.total || 0,
-            unique_ips: totalRow?.unique_ips || 0,
-            colors,
-            countries,
-            regions,
-            platforms,
-            languages,
-            resolutions,
-            timezones
+            total: all.length,
+            unique_ips: new Set(all.map(r => r.ip)).size,
+            colors: Object.entries(colors).map(([k, v]) => ({ color: k, count: v })).sort((a, b) => b.count - a.count),
+            countries: Object.entries(countries).map(([k, v]) => ({ country: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 8),
+            regions: Object.entries(regions).map(([k, v]) => ({ region: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 8),
+            platforms: Object.entries(platforms).map(([k, v]) => ({ platform: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 6),
+            languages: Object.entries(languages).map(([k, v]) => ({ language: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 6),
+            resolutions: Object.entries(resolutions).map(([k, v]) => ({ resolution: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 6),
+            timezones: Object.entries(timezones).map(([k, v]) => ({ timezone: k, count: v })).sort((a, b) => b.count - a.count).slice(0, 6)
         });
     } catch (err) {
         console.error('Error en /stats-data:', err);
@@ -250,72 +193,84 @@ app.get('/stats-data', (req, res) => {
     }
 });
 
-app.get('/api/perfil/:id', (req, res) => {
+app.get('/api/perfil/:id', async (req, res) => {
     try {
-        const perfil = prepareGet(
-            `SELECT
-                    id, color, ip, country, region, latitude, longitude,
-                    tiempo_seleccion, clics_erroneos, movimientos_mouse,
-                    porcentaje_scroll, pausas_scroll, user_agent, platform,
-                    language, screen_resolution, color_depth, timezone,
-                    cpu_cores, device_memory, fingerprint, timestamp
-             FROM respuestas
-             WHERE id = ?
-             LIMIT 1`,
-            [req.params.id]
-        );
+        const { data: perfil, error } = await supabase
+            .from('respuestas')
+            .select('*')
+            .eq('id', req.params.id)
+            .limit(1);
 
-        if (!perfil) {
+        if (error || !perfil || perfil.length === 0) {
             return res.status(404).json({ error: 'No se encontró el perfil' });
         }
 
-        res.json(perfil);
+        res.json(perfil[0]);
     } catch (err) {
         console.error('Error en /api/perfil/:id', err);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', async (req, res) => {
     try {
-        const totalRow = prepareGet('SELECT COUNT(*) as total FROM respuestas');
-        const coloresRaw = prepareAll('SELECT color, COUNT(*) as cantidad FROM respuestas GROUP BY color ORDER BY cantidad DESC');
-        const paisesRaw = prepareAll(`
-            SELECT country as country, COUNT(*) as cantidad
-            FROM respuestas
-            WHERE country IS NOT NULL AND country != ''
-            GROUP BY country
-            ORDER BY cantidad DESC
-            LIMIT 20
-        `);
-        const avgTiempoRow = prepareGet("SELECT AVG(CAST(tiempo_seleccion AS INTEGER)) as avgTiempo FROM respuestas WHERE tiempo_seleccion IS NOT NULL AND tiempo_seleccion != 'No consentido'");
-        const avgClicsRow = prepareGet("SELECT AVG(CAST(clics_erroneos AS INTEGER)) as avgClics FROM respuestas WHERE clics_erroneos IS NOT NULL AND clics_erroneos != 'No consentido'");
-        const avgScrollRow = prepareGet("SELECT AVG(CAST(porcentaje_scroll AS INTEGER)) as avgScroll FROM respuestas WHERE porcentaje_scroll IS NOT NULL AND porcentaje_scroll != 'No consentido'");
+        const { data: all } = await supabase.from('respuestas').select('*');
 
-        const result = {
-            total_respuestas: totalRow?.total || 0,
-            colores: coloresRaw.map(r => ({ color: r.color, cantidad: r.cantidad })),
-            paises: paisesRaw.map(r => ({ country: r.country, cantidad: r.cantidad })),
-            promedio_tiempo: avgTiempoRow?.avgTiempo ? Math.round(avgTiempoRow.avgTiempo) : 0,
-            indecisos_promedio: avgClicsRow?.avgClics ? Math.round(avgClicsRow.avgClics) : 0,
-            scroll_promedio: avgScrollRow?.avgScroll ? Math.round(avgScrollRow.avgScroll) : 0
-        };
+        if (!all || all.length === 0) {
+            return res.json({
+                total_respuestas: 0,
+                colores: [],
+                paises: [],
+                promedio_tiempo: 0,
+                indecisos_promedio: 0,
+                scroll_promedio: 0
+            });
+        }
 
-        res.json(result);
+        const colores = {};
+        const paises = {};
+        let sumTiempo = 0, countTiempo = 0;
+        let sumClics = 0, countClics = 0;
+        let sumScroll = 0, countScroll = 0;
+
+        all.forEach(row => {
+            colores[row.color] = (colores[row.color] || 0) + 1;
+            if (row.country && row.country !== '') paises[row.country] = (paises[row.country] || 0) + 1;
+
+            if (row.tiempo_seleccion && row.tiempo_seleccion !== 'No consentido') {
+                sumTiempo += parseInt(row.tiempo_seleccion) || 0;
+                countTiempo++;
+            }
+            if (row.clics_erroneos && row.clics_erroneos !== 'No consentido') {
+                sumClics += parseInt(row.clics_erroneos) || 0;
+                countClics++;
+            }
+            if (row.porcentaje_scroll && row.porcentaje_scroll !== 'No consentido') {
+                sumScroll += parseInt(row.porcentaje_scroll) || 0;
+                countScroll++;
+            }
+        });
+
+        res.json({
+            total_respuestas: all.length,
+            colores: Object.entries(colores).map(([k, v]) => ({ color: k, cantidad: v })).sort((a, b) => b.cantidad - a.cantidad),
+            paises: Object.entries(paises).map(([k, v]) => ({ country: k, cantidad: v })).sort((a, b) => b.cantidad - a.cantidad).slice(0, 20),
+            promedio_tiempo: countTiempo > 0 ? Math.round(sumTiempo / countTiempo) : 0,
+            indecisos_promedio: countClics > 0 ? Math.round(sumClics / countClics) : 0,
+            scroll_promedio: countScroll > 0 ? Math.round(sumScroll / countScroll) : 0
+        });
     } catch (err) {
         console.error('Error en /api/stats:', err);
         res.status(500).json({ error: 'Error interno' });
     }
 });
 
-const PORT = process.env.PORT || 3000;
-initDB()
-    .then(() => {
-        app.listen(PORT, () => {
-            console.log(`Servidor corriendo en http://localhost:${PORT}`);
-        });
-    })
-    .catch(err => {
-        console.error('No se pudo iniciar la base de datos:', err);
-        process.exit(1);
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Servidor corriendo en http://localhost:${PORT}`);
+        console.log(`Supabase URL: ${process.env.SUPABASE_URL}`);
     });
+}
+
+module.exports = app;
