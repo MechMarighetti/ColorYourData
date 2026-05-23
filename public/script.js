@@ -117,6 +117,8 @@ document.getElementById('btnIniciar').addEventListener('click', function() {
     
     // Listener para scroll
     window.addEventListener('scroll', handleScroll);
+
+    window.addEventListener("mouseleave", copyShareLink);
   }
 });
 

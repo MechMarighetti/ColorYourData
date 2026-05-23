@@ -829,9 +829,9 @@ button:disabled {
 .section-title{ color:#6a5acd; margin-bottom:10px; text-align:center }
 
 .timeline-container{ position:relative; padding:20px 0 10px; }
-.timeline-line{ left:50%; width:6px; background: linear-gradient(to bottom, var(--lila), var(--rosa)); border-radius:4px; }
+.timeline-line{ left:50%; width:6px; background: linear-gradient(to bottom, var(--lila), var(--rosa)); border-radius:4px; z-index:1; }
 
-.timeline-item{ display:flex; align-items:center; gap:18px; margin: 18px 0; position:relative; }
+.timeline-item{ display:flex; align-items:end; gap:18px; margin: 18px 0; position:relative; }
 .timeline-dot{ width:34px; height:34px; border-radius:50%; border:4px solid var(--blanco); position:relative; left:50%; transform: translateX(50%); z-index:2 }
 .timeline-content-card{ display:flex; align-items:center; gap:14px; background:var(--card-bg); padding:12px 14px; border-radius:16px; box-shadow: var(--sombra); width: calc(50% - 60px); }
 .sample-circle{ width:56px; height:56px; border-radius:50%; border:3px solid rgba(255,255,255,0.6); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }

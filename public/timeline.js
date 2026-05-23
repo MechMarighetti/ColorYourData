@@ -117,10 +117,16 @@ function renderTimeline(entries) {
     const details = el('div'); details.className = 'details';
     const name = el('div'); name.className = 'color-name'; name.textContent = entry.color || 'Color';
     const meta = el('div'); meta.className = 'color-meta';
+    const port = el ('div'); port.className = 'entry-port'; port.textContent = entry.port ? `:${entry.port}` : '';
+    const country = el ('div'); country.className = 'entry-country'; country.textContent = entry.country ? ` • ${entry.country}` : '';
+    const porcent = el ('div'); porcent.className = 'entry-porcentaje'; porcent.textContent = entry.porcentaje_scroll ? ` • ${entry.porcentaje_scroll}%` : '';
     meta.innerHTML = `${timeAgo(entry.timestamp)} ${entry.country ? ' • ' + entry.country : ''} ${entry.region ? ' • ' + entry.region : ''}`;
 
     details.appendChild(name); details.appendChild(meta);
     content.appendChild(colorSample); content.appendChild(details);
+    content.appendChild(port);
+    content.appendChild(country);
+    content.appendChild(porcent);
 
     item.appendChild(dot); item.appendChild(content);
     cont.appendChild(item);
