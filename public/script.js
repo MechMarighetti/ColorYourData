@@ -8,6 +8,72 @@ let mousePattern = [];
 let lastMouseCell = null;
 let scrollTimeout = null;
 
+const COLOR_OPTIONS = [
+  { hex: '#FFB3BA', name: 'Rosa Caramelo' },
+  { hex: '#FFDFBA', name: 'Durazno Dulce' },
+  { hex: '#FFFFBA', name: 'Amarillo Mantequilla' },
+  { hex: '#BAFFC9', name: 'Menta Suave' },
+  { hex: '#BAE1FF', name: 'Azul Cielo' },
+  { hex: '#E8BAFF', name: 'Lila Magico' },
+  { hex: '#FFC3A0', name: 'Salmon Rosado' },
+  { hex: '#A0E7E5', name: 'Turquesa Claro' },
+  { hex: '#F5E1FD', name: 'Lavanda Bebe' },
+  { hex: '#B4F8C8', name: 'Verde Primavera' },
+  { hex: '#F9F871', name: 'Amarillo Sol' },
+  { hex: '#FF6F91', name: 'Fucsia Suave' },
+  { hex: '#FFD1DC', name: 'Crema de Fresa' },
+  { hex: '#E6E6FA', name: 'Perla Lavanda' },
+  { hex: '#F7DC6F', name: 'Melon Suave' },
+  { hex: '#F0B27A', name: 'Coral Claro' },
+  { hex: '#76D7C4', name: 'Aqua Fresco' },
+  { hex: '#F7CAC9', name: 'Rosa Cuarzo' },
+  { hex: '#D7BDE2', name: 'Lila Grisaceo' },
+  { hex: '#A3E4D7', name: 'Verde Agua' },
+  { hex: '#F9E79F', name: 'Amarillo Pastel' },
+  { hex: '#FAD7A1', name: 'Naranja Suave' },
+  { hex: '#F5E6CC', name: 'Vainilla' },
+  { hex: '#F2D7D5', name: 'Rosa Viejo' },
+  { hex: '#D4E6F1', name: 'Cielo Anochecer' },
+  { hex: '#A8E6CF', name: 'Menta Helada' },
+  { hex: '#FDEBD0', name: 'Champan' }
+];
+
+function renderColorOptions() {
+  const palette = document.getElementById('paletaColores');
+  if (!palette) return;
+
+  palette.innerHTML = '';
+  COLOR_OPTIONS.forEach(({ hex, name }) => {
+    const card = document.createElement('div');
+    card.className = 'color-card';
+    card.dataset.color = hex;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `Seleccionar color ${name}`);
+
+    const sample = document.createElement('div');
+    sample.className = 'color-muestra';
+    sample.style.backgroundColor = hex;
+
+    const info = document.createElement('div');
+    info.className = 'color-info';
+
+    const colorName = document.createElement('span');
+    colorName.className = 'color-nombre';
+    colorName.textContent = name;
+
+    const percentage = document.createElement('span');
+    percentage.className = 'color-porcentaje';
+    percentage.textContent = '0% de los votos';
+
+    info.appendChild(colorName);
+    info.appendChild(percentage);
+    card.appendChild(sample);
+    card.appendChild(info);
+    palette.appendChild(card);
+  });
+}
+
 function crearFingerprint() {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -100,8 +166,8 @@ document.getElementById('chkComportamiento').addEventListener('change', function
 });
 
 document.getElementById('btnIniciar').addEventListener('click', function() {
-  document.getElementById('modal').style.display = 'none';
-  document.getElementById('encuesta').style.display = 'block';
+  document.getElementById('modal').classList.add('is-hidden');
+  document.getElementById('encuesta').classList.remove('is-hidden');
   
   // Inicializar tracking
   tiempoInicio = Date.now();
@@ -127,11 +193,9 @@ function actualizarBotonGuardar() {
   const boton = document.getElementById('btnGuardar');
   if (colorSeleccionado) {
     boton.disabled = false;
-    boton.style.display = 'block';
     boton.classList.add('visible');
   } else {
     boton.disabled = true;
-    boton.style.display = 'none';
     boton.classList.remove('visible');
   }
 }
@@ -151,12 +215,17 @@ function manejarTeclaColor(event) {
   }
 }
 
-document.querySelectorAll('.color-card').forEach(card => {
-  card.addEventListener('click', function() {
-    seleccionarColor(this);
+function bindColorOptions() {
+  document.querySelectorAll('.color-card').forEach(card => {
+    card.addEventListener('click', function() {
+      seleccionarColor(this);
+    });
+    card.addEventListener('keydown', manejarTeclaColor);
   });
-  card.addEventListener('keydown', manejarTeclaColor);
-});
+}
+
+renderColorOptions();
+bindColorOptions();
 
 async function cargarPorcentajes() {
   try {
@@ -202,9 +271,9 @@ document.getElementById('btnGuardar').addEventListener('click', async function()
       if (result.sessionId) {
         sessionStorage.setItem('sessionId', result.sessionId);
       }
-      document.getElementById('mensaje').innerHTML = '🎉 ¡Gracias por participar! Tu color ha sido registrado. 🎨✨<br><a href="perfil.html" style="color: #6a5acd; font-weight: 600; text-decoration: none;">🔍 Ver mi huella digital</a>';
-      document.getElementById('mensaje').style.display = 'block';
-      document.getElementById('btnCompartir').style.display = 'inline-block';
+      document.getElementById('mensaje').innerHTML = '🎉 ¡Gracias por participar! Tu color ha sido registrado. 🎨✨<br><a class="profile-link" href="perfil.html">🔍 Ver mi huella digital</a>';
+      document.getElementById('mensaje').classList.remove('is-hidden');
+      document.getElementById('btnCompartir').classList.remove('is-hidden');
       this.disabled = true;
     } else {
       alert('Error al guardar.');

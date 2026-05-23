@@ -99,10 +99,10 @@ function renderTimeline(entries) {
   const empty = document.getElementById('emptyMessage');
   cont.querySelectorAll('.timeline-item').forEach(n => n.remove());
   if (!entries || entries.length === 0) {
-    empty.style.display = 'block';
+    empty.classList.remove('is-hidden');
     return;
   }
-  empty.style.display = 'none';
+  empty.classList.add('is-hidden');
   entries.forEach((entry, i) => {
     const item = el('div'); item.className = 'timeline-item';
     item.style.animationDelay = `${i * 0.08}s`;

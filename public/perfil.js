@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       contentDiv.innerHTML = `
         <div class="error">
           <p>🎨 Aún no has guardado ningún color favorito.</p>
-          <p><a href="index.html" style="color: #ff6f91; font-weight: 600; text-decoration: underline;">Ir a la encuesta</a></p>
+          <p><a class="inline-action-link" href="index.html">Ir a la encuesta</a></p>
         </div>
       `;
       return;
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     contentDiv.innerHTML = `
       <div class="error">
         <p>❌ Error al cargar tu perfil. Intenta de nuevo más tarde.</p>
-        <p><a href="index.html" style="color: #ff6f91; font-weight: 600; text-decoration: underline;">Volver al inicio</a></p>
+        <p><a class="inline-action-link" href="index.html">Volver al inicio</a></p>
       </div>
     `;
   }
@@ -47,8 +47,8 @@ function renderPerfil(data) {
     <div class="section">
       <h2>🎨 Tu color elegido</h2>
       <div class="color-preview" style="background-color: ${data.color};"></div>
-      <p style="text-align: center; font-size: 1.2em; color: ${data.color}; font-weight: 600;">${data.color}</p>
-      <p style="text-align: center; color: #5d5d77;">De: <strong>${data.country || 'Desconocido'}</strong></p>
+      <p class="profile-color-text" style="color: ${data.color};">${data.color}</p>
+      <p class="profile-country-text">De: <strong>${data.country || 'Desconocido'}</strong></p>
     </div>
   `;
 
@@ -198,7 +198,7 @@ function renderHeatmap(movimientos) {
       <h2>🗺️ Mapa de calor de tus movimientos</h2>
       <p>Rojo = mucho movimiento | Naranja = algo | Verde = poco</p>
       ${heatmapHtml}
-      <p style="font-size: 0.9em; color: #888; text-align: center; margin-top: 10px;">
+      <p class="heatmap-note">
         Registramos <strong>${movimientos.length}</strong> posiciones del mouse en una cuadrícula 4x4.
       </p>
     </div>
