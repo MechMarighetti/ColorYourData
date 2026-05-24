@@ -3,28 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Estadísticas Globales</title>
+  <title>Estadisticas Globales</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  <div class="stats-page">
-    <div class="stats-container">
-      <div class="stats-card">
-        <h1>📊 Estadísticas Globales</h1>
-        
-        <div id="content" class="loading">Cargando estadísticas...</div>
-        
-         
+<body class="app-body">
+  <main class="insight-page stats-dashboard">
+    <nav class="top-actions" aria-label="Navegacion principal">
+      <a class="btn-link" href="index.html">🎨 Elegir mi color</a>
+      <a class="btn-link" href="huella.html">🔍 Mi huella</a>
+    </nav>
 
-        <p class="timeline-footer">
-        <a class="btn-link" href="index.html">⬅️ Elegí otro color</a>
-        <a class="btn-link" href="stats.html">📊 Ver estadísticas</a>
-        <a class="btn-link" href="perfil.html">🔍 Mi huella digital</a>
-        
-      </div>
-    </div>
-  </div>
+    <header class="insight-hero">
+      <div class="hero-badge">📊 Estadisticas</div>
+      <h1>Mapa global de colores y huellas</h1>
+      <p>Explora que colores se eligen, desde donde llegan las visitas y que patrones tecnicos aparecen en la encuesta.</p>
+    </header>
+
+    <section id="summaryCards" class="summary-grid"></section>
+
+    <section class="dashboard-grid">
+      <article class="chart-panel chart-panel-wide">
+        <h2>🎨 Distribucion de colores</h2>
+        <div class="chart-box"><canvas id="colorsChart"></canvas></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>🌎 Distribucion geografica</h2>
+        <div class="chart-box"><canvas id="countriesChart"></canvas></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>💻 Plataformas</h2>
+        <div class="chart-box"><canvas id="platformsChart"></canvas></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>🗣️ Idiomas frecuentes</h2>
+        <div class="chart-box"><canvas id="languagesChart"></canvas></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>⏱️ Tiempo promedio por plataforma</h2>
+        <div class="chart-box"><canvas id="timePlatformChart"></canvas></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>🤔 Indecision por idioma</h2>
+        <div class="chart-box"><canvas id="clickLanguageChart"></canvas></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>📜 Scroll promedio por pais</h2>
+        <div class="chart-box"><canvas id="scrollCountryChart"></canvas></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>📺 Resolucion y memoria</h2>
+        <div class="chart-box"><canvas id="memoryResolutionChart"></canvas></div>
+      </article>
+    </section>
+
+    <section class="chart-panel chart-panel-wide">
+      <h2>🕒 Color preferido por zona horaria</h2>
+      <div id="timezoneHeatmap" class="data-table-wrap"></div>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="chart-panel">
+        <h2>🎨 Tabla Hex → Nombre</h2>
+        <div id="colorMapTable" class="data-table-wrap"></div>
+      </article>
+
+      <article class="chart-panel">
+        <h2>🔐 Huellas digitales anonimas</h2>
+        <div id="fingerprintsTable" class="data-table-wrap"></div>
+      </article>
+    </section>
+  </main>
 
   <script src="stats.js"></script>
 </body>

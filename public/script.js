@@ -271,7 +271,7 @@ document.getElementById('btnGuardar').addEventListener('click', async function()
       if (result.sessionId) {
         sessionStorage.setItem('sessionId', result.sessionId);
       }
-      document.getElementById('mensaje').innerHTML = '🎉 ¡Gracias por participar! Tu color ha sido registrado. 🎨✨<br><a class="profile-link" href="perfil.html">🔍 Ver mi huella digital</a>';
+      document.getElementById('mensaje').innerHTML = '🎉 ¡Gracias por participar! Tu color ha sido registrado. 🎨✨<br><a class="profile-link" href="huella.html">🔍 Ver mi huella digital</a>';
       document.getElementById('mensaje').classList.remove('is-hidden');
       document.getElementById('btnCompartir').classList.remove('is-hidden');
       this.disabled = true;

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tu Huella Digital</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="app-body">
+  <main class="insight-page huella-page">
+    <nav class="top-actions" aria-label="Navegacion principal">
+      <a class="btn-link" href="index.html">🎨 Elegir mi color</a>
+      <a class="btn-link" href="stats.html">📊 Ver estadisticas</a>
+    </nav>
+
+    <header class="insight-hero">
+      <div class="hero-badge">🔍 Huella digital</div>
+      <h1>Tu huella digital en esta encuesta</h1>
+      <p>Estos son los rastros que dejaste al elegir tu color. Pasa el mouse sobre cada dato para entender que significa.</p>
+    </header>
+
+    <section id="emptyState" class="empty-state is-hidden">
+      <h2>🎨 Todavia no encontramos una respuesta tuya</h2>
+      <p>Elegi un color para ver que datos tecnicos y de comportamiento deja una visita simple.</p>
+      <a class="primary-link" href="index.html">🎨 Elegir mi color</a>
+    </section>
+
+    <section id="limitedNotice" class="soft-notice is-hidden">
+      🎨 ¡Gracias por elegir tu color! No activaste el seguimiento detallado, asi que solo podemos mostrarte estos datos basicos.
+    </section>
+
+    <section class="insight-section" aria-labelledby="datos-title">
+      <div class="section-heading">
+        <h2 id="datos-title">Datos de tu visita</h2>
+        <p id="currentFingerprintName"></p>
+      </div>
+      <div id="currentDataGrid" class="info-grid">
+        <div class="loading">Cargando tu huella...</div>
+      </div>
+    </section>
+
+    <section class="insight-section" aria-labelledby="historial-title">
+      <div class="section-heading">
+        <h2 id="historial-title">Tus colores anteriores</h2>
+        <p>Historial de respuestas detectadas desde tu misma IP.</p>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <div id="detailModal" class="detail-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="detail-modal-card">
+      <button id="closeModal" class="modal-close" type="button" aria-label="Cerrar">×</button>
+      <h2 id="modalTitle">Detalle de la respuesta</h2>
+      <div id="modalContent" class="info-grid"></div>
+    </div>
+  </div>
+
+  <script src="huella.js"></script>
+</body>
+</html>

@@ -37,6 +37,20 @@ function getClientIp(req) {
     return ip ? ip.replace(/^::ffff:/, '') : 'Desconocido';
 }
 
+function random_name(fingerprint) {
+    const adjetivos = ['Luminoso', 'Curioso', 'Saltarin', 'Tranquilo', 'Brillante', 'Oscuro', 'Veloz', 'Sereno', 'Magico', 'Amable', 'Audaz', 'Sutil', 'Elegante', 'Radiante', 'Misterioso', 'Divertido', 'Sabio', 'Dulce', 'Fresco', 'Vibrante'];
+    const sustantivos = ['Zorro', 'Nube', 'Lince', 'Pez', 'Gato', 'Luna', 'Sol', 'Estrella', 'Mariposa', 'Colibri', 'Tigre', 'Delfin', 'Arbol', 'Piedra', 'Rio', 'Nube', 'Fenix', 'Dragon', 'Buho', 'Coral'];
+    const value = String(fingerprint || 'sin-huella');
+    let hash = 0;
+    for (let i = 0; i < value.length; i++) {
+        hash = ((hash << 5) - hash) + value.charCodeAt(i);
+        hash |= 0;
+    }
+    const idx1 = Math.abs(hash) % adjetivos.length;
+    const idx2 = Math.abs(hash >> 8) % sustantivos.length;
+    return `${adjetivos[idx1]} ${sustantivos[idx2]}`;
+}
+
 // --- RUTAS DE TU API ---
 
 // Ruta: /guardar-color
@@ -61,33 +75,47 @@ app.post('/guardar-color', async (req, res) => {
 
         // 1. Insertamos la nueva respuesta en la tabla 'respuestas'
         // Asegúrate de que los nombres de las columnas coincidan con tu tabla en Supabase.
-        const { data: newResponse, error: insertError } = await supabase
+        const fingerprintName = random_name(data.fingerprint);
+        const payload = {
+            color: data.color,
+            ip: cleanIp,
+            country: country,
+            region: region,
+            latitude: data.latitude || null,
+            longitude: data.longitude || null,
+            user_agent: data.user_agent,
+            platform: data.platform,
+            language: data.language,
+            screen_resolution: data.screen_resolution,
+            color_depth: data.color_depth,
+            timezone: data.timezone,
+            cpu_cores: data.cpu_cores,
+            device_memory: data.device_memory,
+            fingerprint: data.fingerprint,
+            fingerprint_name: fingerprintName,
+            tiempo_seleccion: data.tiempo_seleccion || 'No consentido',
+            clics_erroneos: data.clics_erroneos || 'No consentido',
+            movimientos_mouse: data.movimientos_mouse || 'No consentido',
+            porcentaje_scroll: data.porcentaje_scroll || 'No consentido',
+            pausas_scroll: data.pausas_scroll || 'No consentido'
+        };
+
+        let { data: newResponse, error: insertError } = await supabase
             .from('respuestas')
-            .insert([
-                {
-                    color: data.color,
-                    ip: cleanIp,
-                    country: country,
-                    region: region,
-                    latitude: data.latitude || null,
-                    longitude: data.longitude || null,
-                    user_agent: data.user_agent,
-                    platform: data.platform,
-                    language: data.language,
-                    screen_resolution: data.screen_resolution,
-                    color_depth: data.color_depth,
-                    timezone: data.timezone,
-                    cpu_cores: data.cpu_cores,
-                    device_memory: data.device_memory,
-                    fingerprint: data.fingerprint,
-                    tiempo_seleccion: data.tiempo_seleccion || 'No consentido',
-                    clics_erroneos: data.clics_erroneos || 'No consentido',
-                    movimientos_mouse: data.movimientos_mouse || 'No consentido',
-                    porcentaje_scroll: data.porcentaje_scroll || 'No consentido',
-                    pausas_scroll: data.pausas_scroll || 'No consentido'
-                }
-            ])
+            .insert([payload])
             .select(); // Para que nos devuelva el registro insertado, incluyendo su ID.
+
+        if (insertError && String(insertError.message || '').includes('fingerprint_name')) {
+            console.warn('La columna fingerprint_name no existe todavia. Ejecuta la migracion Supabase incluida.');
+            const fallbackPayload = { ...payload };
+            delete fallbackPayload.fingerprint_name;
+            const retry = await supabase
+                .from('respuestas')
+                .insert([fallbackPayload])
+                .select();
+            newResponse = retry.data;
+            insertError = retry.error;
+        }
 
         if (insertError) {
             console.error('Error al insertar en Supabase:', insertError);
@@ -113,7 +141,7 @@ app.get('/timeline-data', async (req, res) => {
         // 1. Obtener el timeline para esta IP
         const { data: timeline, error: timelineError } = await supabase
             .from('respuestas')
-            .select('id, color, timestamp, latitude, longitude')
+            .select('*')
             .eq('ip', cleanIp)
             .order('timestamp', { ascending: true });
 
@@ -170,14 +198,7 @@ app.get('/api/mi-perfil', async (req, res) => {
         // Obtenemos la última respuesta para esta IP
         const { data: perfil, error } = await supabase
             .from('respuestas')
-            .select(`
-                color, country, region,
-                tiempo_seleccion, clics_erroneos, movimientos_mouse,
-                porcentaje_scroll, pausas_scroll,
-                user_agent, platform, language, screen_resolution,
-                color_depth, timezone, cpu_cores, device_memory, fingerprint,
-                timestamp
-            `)
+            .select('*')
             .eq('ip', cleanIp)
             .order('timestamp', { ascending: false })
             .limit(1);
@@ -198,75 +219,52 @@ app.get('/api/mi-perfil', async (req, res) => {
     }
 });
 
-// Ruta: /stats-data (para tu página stats.html)
+// Ruta: /stats-data (para tu pagina stats.html)
 app.get('/stats-data', async (req, res) => {
     try {
-        // Obtenemos las estadísticas con múltiples consultas. Para producción,
-        // sería mejor crear una vista o función en PostgreSQL/Supabase.
-        const [
-            totalRespuestas,
-            uniqueIpsCount,
-            colorsCount,
-            countriesCount,
-            platformsCount,
-            languagesCount,
-            resolutionsCount,
-            timezonesCount
-        ] = await Promise.all([
-            supabase.from('respuestas').select('*', { count: 'exact', head: true }),
-            supabase.from('respuestas').select('ip', { count: 'exact', head: true }).not('ip', 'is', null),
-            supabase.from('respuestas').select('color', { count: 'exact' }).not('color', 'is', null),
-            supabase.from('respuestas').select('country', { count: 'exact' }).not('country', 'is', null),
-            supabase.from('respuestas').select('platform', { count: 'exact' }).not('platform', 'is', null),
-            supabase.from('respuestas').select('language', { count: 'exact' }).not('language', 'is', null),
-            supabase.from('respuestas').select('screen_resolution', { count: 'exact' }).not('screen_resolution', 'is', null),
-            supabase.from('respuestas').select('timezone', { count: 'exact' }).not('timezone', 'is', null)
-        ]);
+        const { data: responses, error } = await supabase
+            .from('respuestas')
+            .select('*')
+            .order('timestamp', { ascending: false })
+            .limit(2000);
 
-        if (totalRespuestas.error) throw totalRespuestas.error;
-        if (uniqueIpsCount.error) throw uniqueIpsCount.error;
-        if (colorsCount.error) throw colorsCount.error;
-        if (countriesCount.error) throw countriesCount.error;
-        if (platformsCount.error) throw platformsCount.error;
-        if (languagesCount.error) throw languagesCount.error;
-        if (resolutionsCount.error) throw resolutionsCount.error;
-        if (timezonesCount.error) throw timezonesCount.error;
+        if (error) throw error;
 
-        // Procesamos los resultados para dar el formato que espera tu frontend
-        const colors = {};
-        colorsCount.data.forEach(item => { colors[item.color] = (colors[item.color] || 0) + 1; });
-        const formattedColors = Object.entries(colors).map(([color, count]) => ({ color, count }));
+        const rows = responses || [];
+        const countBy = (key) => {
+            const counts = {};
+            rows.forEach(item => {
+                const value = item[key] || 'No disponible';
+                counts[value] = (counts[value] || 0) + 1;
+            });
+            return Object.entries(counts).map(([value, count]) => ({ [key]: value, count }));
+        };
 
-        const countries = {};
-        countriesCount.data.forEach(item => { countries[item.country] = (countries[item.country] || 0) + 1; });
-        const formattedCountries = Object.entries(countries).map(([country, count]) => ({ country, count }));
-
-        const platforms = {};
-        platformsCount.data.forEach(item => { platforms[item.platform] = (platforms[item.platform] || 0) + 1; });
-        const formattedPlatforms = Object.entries(platforms).map(([platform, count]) => ({ platform, count }));
-
-        const languages = {};
-        languagesCount.data.forEach(item => { languages[item.language] = (languages[item.language] || 0) + 1; });
-        const formattedLanguages = Object.entries(languages).map(([language, count]) => ({ language, count }));
-
-        const resolutions = {};
-        resolutionsCount.data.forEach(item => { resolutions[item.screen_resolution] = (resolutions[item.screen_resolution] || 0) + 1; });
-        const formattedResolutions = Object.entries(resolutions).map(([resolution, count]) => ({ screen_resolution: resolution, count }));
-
-        const timezones = {};
-        timezonesCount.data.forEach(item => { timezones[item.timezone] = (timezones[item.timezone] || 0) + 1; });
-        const formattedTimezones = Object.entries(timezones).map(([timezone, count]) => ({ timezone, count }));
+        const formattedColors = countBy('color').map(item => ({ color: item.color, count: item.count }));
+        const formattedCountries = countBy('country').map(item => ({ country: item.country, count: item.count }));
+        const formattedRegions = countBy('region').map(item => ({ region: item.region, count: item.count }));
+        const formattedPlatforms = countBy('platform').map(item => ({ platform: item.platform, count: item.count }));
+        const formattedLanguages = countBy('language').map(item => ({ language: item.language, count: item.count }));
+        const formattedResolutions = countBy('screen_resolution').map(item => ({ screen_resolution: item.screen_resolution, count: item.count }));
+        const formattedTimezones = countBy('timezone').map(item => ({ timezone: item.timezone, count: item.count }));
+        const uniqueIps = new Set(rows.map(item => item.ip).filter(Boolean)).size;
+        const uniqueFingerprints = new Set(rows.map(item => item.fingerprint).filter(Boolean)).size;
 
         res.json({
-            total: totalRespuestas.count,
-            unique_ips: uniqueIpsCount.count,
+            total: rows.length,
+            unique_ips: uniqueIps,
+            unique_fingerprints: uniqueFingerprints,
             colors: formattedColors,
             countries: formattedCountries,
-            regions: [], // Por simplicidad, lo dejamos vacío o lo calculas similar a countries
+            regions: formattedRegions,
             platforms: formattedPlatforms,
             languages: formattedLanguages,
             resolutions: formattedResolutions,
-            timezones: formattedTimezones
+            timezones: formattedTimezones,
+            responses: rows.map(item => ({
+                ...item,
+                fingerprint_name: item.fingerprint_name || random_name(item.fingerprint)
+            }))
         });
 
     } catch (err) {
@@ -274,7 +272,6 @@ app.get('/stats-data', async (req, res) => {
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
-
 // Ruta: /api/perfil/:id
 app.get('/api/perfil/:id', async (req, res) => {
     try {
