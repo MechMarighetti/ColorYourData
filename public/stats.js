@@ -228,40 +228,6 @@ function renderTimezoneHeatmap(rows) {
   document.getElementById('timezoneHeatmap').innerHTML = rows.length ? table : '<div class="empty-message">Aun no hay datos suficientes.</div>';
 }
 
-function renderColorMapTable() {
-  document.getElementById('colorMapTable').innerHTML = `
-    <table class="data-table">
-      <thead><tr><th>Color</th><th>Hex</th><th>Nombre</th></tr></thead>
-      <tbody>
-        ${COLOR_OPTIONS.map(item => `
-          <tr><td><span class="mini-color-dot" style="background:${item.hex}"></span></td><td>${item.hex}</td><td>${item.name}</td></tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-}
-
-function renderFingerprintsTable(rows) {
-  const map = new Map();
-  rows.forEach(row => {
-    if (!row.fingerprint) return;
-    const current = map.get(row.fingerprint) || { count: 0, last: row.timestamp, name: row.fingerprint_name || random_name(row.fingerprint) };
-    current.count += 1;
-    if (row.timestamp && (!current.last || new Date(row.timestamp) > new Date(current.last))) current.last = row.timestamp;
-    map.set(row.fingerprint, current);
-  });
-  const entries = [...map.entries()].slice(0, 50);
-  document.getElementById('fingerprintsTable').innerHTML = entries.length ? `
-    <table class="data-table">
-      <thead><tr><th>Nombre</th><th>Registros</th><th>Ultima visita</th></tr></thead>
-      <tbody>
-        ${entries.map(([, data]) => `
-          <tr><td>${data.name}</td><td>${data.count}</td><td>${data.last ? new Date(data.last).toLocaleString('es-AR') : '--'}</td></tr>
-        `).join('')}
-      </tbody>
-    </table>
-  ` : '<div class="empty-message">Todavia no hay fingerprints registrados.</div>';
-}
 
 async function initStats() {
   try {
@@ -277,8 +243,6 @@ async function initStats() {
     renderSummary(statsData, apiStats);
     renderCharts(statsData);
     renderTimezoneHeatmap(rows);
-    renderColorMapTable();
-    renderFingerprintsTable(rows);
   } catch (err) {
     document.querySelector('.stats-dashboard').insertAdjacentHTML('beforeend', '<div class="error">No pudimos cargar las estadisticas. Revisa el servidor y la conexion con Supabase.</div>');
   }

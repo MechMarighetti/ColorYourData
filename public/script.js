@@ -109,6 +109,11 @@ function getMouseCell(event) {
   return row * 4 + col;
 }
 
+function getTermsReadStatus() {
+  const leyo = document.getElementById('readTerms');
+  return leyo ? (leyo.dataset.read === 'true' ? 1 : 0) : 0;
+}
+
 async function recolectarDatos() {
   const data = {
     color: colorSeleccionado,
@@ -120,7 +125,9 @@ async function recolectarDatos() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     cpu_cores: navigator.hardwareConcurrency,
     device_memory: navigator.deviceMemory || 'No disponible',
-    fingerprint: crearFingerprint()
+    fingerprint: crearFingerprint(),
+    terms_read: getTermsReadStatus(),
+    
   };
 
   // Obtener geolocalización
@@ -164,6 +171,32 @@ document.getElementById('chkAcepto').addEventListener('change', function() {
 document.getElementById('chkComportamiento').addEventListener('change', function() {
   consentimientoComportamiento = this.checked;
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ... (asegurate de que fingerprintActual esté definido aquí) ...
+
+        const termsLink = document.getElementById('readTerms');
+    if (termsLink) {
+        termsLink.addEventListener('click', async (e) => {
+            // Marcar que leyó los términos (independientemente de la petición)
+            termsRead = true;
+
+            if (typeof fingerprintActual !== 'undefined' && fingerprintActual) {
+                try {
+                    await fetch('/registrar-lectura', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fingerprint: fingerprintActual })
+                    });
+                } catch (err) {
+                    console.warn('No se pudo registrar la lectura:', err);
+                }
+            }
+        });
+    }
+});
+      
+
 
 document.getElementById('btnIniciar').addEventListener('click', function() {
   document.getElementById('modal').classList.add('is-hidden');
@@ -256,7 +289,7 @@ document.getElementById('btnGuardar').addEventListener('click', async function()
   document.removeEventListener('mousemove', handleMouseMove);
   window.removeEventListener('scroll', handleScroll);
   if (scrollTimeout) clearTimeout(scrollTimeout);
-  
+
   const datos = await recolectarDatos();
   try {
     const response = await fetch('/guardar-color', {
@@ -266,14 +299,14 @@ document.getElementById('btnGuardar').addEventListener('click', async function()
       },
       body: JSON.stringify(datos)
     });
+    
     if (response.ok) {
       const result = await response.json();
       if (result.sessionId) {
         sessionStorage.setItem('sessionId', result.sessionId);
       }
-      document.getElementById('mensaje').innerHTML = '🎉 ¡Gracias por participar! Tu color ha sido registrado. 🎨✨<br><a class="profile-link" href="huella.html">🔍 Ver mi huella digital</a>';
-      document.getElementById('mensaje').classList.remove('is-hidden');
-      document.getElementById('btnCompartir').classList.remove('is-hidden');
+      // Mostrar modal de compartir
+      mostrarShareModal(datos.color);
       this.disabled = true;
     } else {
       alert('Error al guardar.');
@@ -282,6 +315,66 @@ document.getElementById('btnGuardar').addEventListener('click', async function()
     alert('Error de conexión.');
   }
 });
+
+function mostrarShareModal(colorHex) {
+  const modal = document.getElementById('shareModal');
+  const btnShare = document.getElementById('btnShareNow');
+  const btnSkip = document.getElementById('btnShareSkip');
+  const copiedMsg = document.getElementById('shareCopied');
+  modal.classList.remove('is-hidden');
+  copiedMsg.classList.add('is-hidden');
+
+  // Mensaje personalizado con color
+  let colorName = '';
+  if (typeof COLOR_OPTIONS !== 'undefined') {
+    const found = COLOR_OPTIONS.find(c => c.hex.toUpperCase() === (colorHex || '').toUpperCase());
+    colorName = found ? found.name : colorHex;
+  } else {
+    colorName = colorHex;
+  }
+  // Handler compartir
+  btnShare.onclick = async function() {
+    const shareData = {
+      title: 'Mi color favorito',
+      text: `Elegí el color ${colorName} en la encuesta de color. ¿Cuál elegís vos? 🎨`,
+      url: window.location.origin + '/index.html'
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        modal.classList.add('is-hidden');
+        mostrarMensajeFinal();
+      } catch (err) {
+        copiarAlPortapapeles(shareData.text + ' ' + shareData.url, copiedMsg);
+      }
+    } else {
+      copiarAlPortapapeles(shareData.text + ' ' + shareData.url, copiedMsg);
+    }
+  };
+  btnSkip.onclick = function() {
+    modal.classList.add('is-hidden');
+    mostrarMensajeFinal();
+  };
+}
+
+function copiarAlPortapapeles(texto, copiedMsg) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto).then(() => {
+      copiedMsg.classList.remove('is-hidden');
+      setTimeout(() => copiedMsg.classList.add('is-hidden'), 2000);
+    });
+  } else {
+    window.prompt('Copiá y compartí:', texto);
+    copiedMsg.classList.remove('is-hidden');
+    setTimeout(() => copiedMsg.classList.add('is-hidden'), 2000);
+  }
+}
+
+function mostrarMensajeFinal() {
+  const mensaje = document.getElementById('mensaje');
+  mensaje.innerHTML = '🎉 ¡Gracias por participar! Tu color ha sido registrado. 🎨✨<br><a class="profile-link" href="huella.html">🔍 Ver mi huella digital</a>';
+  mensaje.classList.remove('is-hidden');
+}
 
 function copyShareLink() {
   const shareUrl = window.location.href;

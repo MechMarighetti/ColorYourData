@@ -141,19 +141,72 @@ function fieldsFor(data) {
   return DATA_FIELDS.filter(field => ['color', 'country_region', 'timestamp'].includes(field.key));
 }
 
-function renderDataGrid(container, data) {
-  container.innerHTML = fieldsFor(data).map(field => `
-    <article class="info-card">
-      <div class="info-card-head">
-        <span>${field.icon} ${field.label}</span>
-        <button class="tooltip-trigger" type="button" aria-label="Por que se recolecta ${field.label}">
-          ?
-          <span class="tooltip-box">${field.description}</span>
-        </button>
-      </div>
-      <div class="info-card-value">${formatValue(field.key, data)}</div>
-    </article>
-  `).join('');
+function renderDataGrid(container, data, opts = {}) {
+  // Cute/educativo: mensajes lúdicos para algunos campos
+  const cuteMessages = {
+    tiempo_seleccion: ms => {
+      if (ms === 'No consentido') return '';
+      const s = Number(ms) / 1000;
+      if (s < 2) return '¡Rápido como un rayo! ⚡';
+      if (s < 5) return '¡Tranquilo y seguro! 😊';
+      return '¡Te tomaste tu tiempo, pensativo! 🤔';
+    },
+    clics_erroneos: v => {
+      if (v === 'No consentido' || v === undefined) return '';
+      if (Number(v) === 0) return '¡Decisión instantánea! 🎯';
+      if (Number(v) < 3) return '¡Un par de dudas, normal! 🤷‍♂️';
+      return '¡Explorador curioso! 🔍';
+    },
+    movimientos_mouse: v => {
+      if (v === 'No consentido' || !v) return '';
+      try {
+        const n = Array.isArray(v) ? v.length : (Array.isArray(JSON.parse(v)) ? JSON.parse(v).length : 0);
+        if (n < 3) return '¡Casi no moviste el mouse! 💤';
+        if (n < 8) return '¡Recorriste la página! 🐾';
+        return '¡Exploración total! 🗺️';
+      } catch { return ''; }
+    },
+    porcentaje_scroll: v => {
+      if (v === 'No consentido' || v === undefined) return '';
+      const n = Number(v);
+      if (n < 30) return '¡Te quedaste arriba! 👀';
+      if (n < 80) return '¡Leíste bastante! 📖';
+      return '¡Llegaste al final! 🏁';
+    },
+    pausas_scroll: v => {
+      if (v === 'No consentido' || v === undefined) return '';
+      if (Number(v) === 0) return '¡Lectura veloz! 🚀';
+      if (Number(v) < 3) return '¡Te detuviste a pensar! 💭';
+      return '¡Analizaste cada detalle! 🔬';
+    }
+  };
+  const isTech = opts.techOnly;
+  const fields = isTech
+    ? DATA_FIELDS.filter(f => [
+        'platform_user_agent','screen_resolution','color_depth','timezone','cpu_cores','device_memory','language','fingerprint'
+      ].includes(f.key))
+    : fieldsFor(data).filter(f => ![
+        'platform_user_agent','screen_resolution','color_depth','timezone','cpu_cores','device_memory','language','fingerprint'
+      ].includes(f.key));
+  container.innerHTML = fields.map(field => {
+    let value = formatValue(field.key, data);
+    let cute = '';
+    if (!isTech && cuteMessages[field.key]) {
+      cute = `<div class="cute-msg">${cuteMessages[field.key](data[field.key])}</div>`;
+    }
+    return `
+      <article class="info-card fade-in-up">
+        <div class="info-card-head">
+          <span>${field.icon} ${field.label}</span>
+          <button class="tooltip-trigger" type="button" aria-label="Por qué se recolecta ${field.label}">
+            ?
+            <span class="tooltip-box">${field.description}</span>
+          </button>
+        </div>
+        <div class="info-card-value">${value}${cute}</div>
+      </article>
+    `;
+  }).join('');
 }
 
 function renderHistory(timeline) {
@@ -198,11 +251,27 @@ function closeModal() {
   document.getElementById('detailModal').classList.add('is-hidden');
 }
 
+
+function showSaludoPersonalizado(profile) {
+  const saludo = document.getElementById('saludoHuella');
+  const subtitulo = document.getElementById('subtituloHuella');
+  if (profile && profile.fingerprint) {
+    const nombre = profile.fingerprint_name || random_name(profile.fingerprint);
+    saludo.textContent = `✨ Hola, ${nombre} ✨`;
+    subtitulo.textContent = `Elegiste el color ${colorName(profile.color)} y así te vimos pasar por nuestra encuesta.`;
+  } else {
+    saludo.textContent = 'Todavía no elegiste tu color';
+    subtitulo.textContent = '¡Te esperamos para descubrir tu huella digital!';
+  }
+}
+
 async function initHuella() {
   const grid = document.getElementById('currentDataGrid');
   const empty = document.getElementById('emptyState');
   const notice = document.getElementById('limitedNotice');
   const fingerprintTitle = document.getElementById('currentFingerprintName');
+  const techBtn = document.getElementById('toggleTech');
+  const techDetails = document.getElementById('techDetails');
 
   try {
     const [profileResponse, timelineResponse] = await Promise.all([
@@ -213,6 +282,7 @@ async function initHuella() {
     if (profileResponse.status === 404) {
       grid.innerHTML = '';
       empty.classList.remove('is-hidden');
+      showSaludoPersonalizado(null);
       renderHistory([]);
       return;
     }
@@ -223,12 +293,35 @@ async function initHuella() {
 
     profile.currentIp = timelineData.currentIp || profile.ip;
     if (!hasTrackingConsent(profile)) notice.classList.remove('is-hidden');
-    fingerprintTitle.textContent = `Huella anonima: ${profile.fingerprint_name || random_name(profile.fingerprint)}`;
+    const nombre = profile.fingerprint_name || random_name(profile.fingerprint);
+    fingerprintTitle.textContent = `Huella anónima: ${nombre}`;
+    showSaludoPersonalizado(profile);
 
+    // Render principal (no técnicos)
     renderDataGrid(grid, profile);
+    // Render detalles técnicos ocultos
+    renderDataGrid(techDetails, profile, { techOnly: true });
+    techDetails.classList.add('tech-details');
+    techDetails.style.display = 'none';
+    techBtn.classList.remove('is-hidden');
+    let techOpen = false;
+    techBtn.onclick = () => {
+      techOpen = !techOpen;
+      techDetails.style.display = techOpen ? 'grid' : 'none';
+      techDetails.classList.toggle('open', techOpen);
+      techBtn.textContent = techOpen ? '🔽 Ocultar detalles técnicos' : '🔍 Ver detalles técnicos';
+    };
+
     renderHistory(timelineData.timeline || []);
+    // Animación fade-in-up
+    setTimeout(() => {
+      document.querySelectorAll('.fade-in-up').forEach(el => {
+        el.classList.add('show');
+      });
+    }, 100);
   } catch (err) {
-    grid.innerHTML = '<div class="error">No pudimos cargar tu huella. Proba de nuevo mas tarde.</div>';
+    grid.innerHTML = '<div class="error">No pudimos cargar tu huella. Proba de nuevo más tarde.</div>';
+    showSaludoPersonalizado(null);
   }
 }
 

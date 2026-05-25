@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Transparencia - Datos recolectados</title>
+  <link rel="stylesheet" href="transparencia.css">
+</head>
+<body>
+  <main class="transparencia-container">
+    <h1>📋 Transparencia: Todos los datos recolectados</h1>
+    <p class="subtitle">Cada fila corresponde a una respuesta individual. Podés filtrar por cualquier campo.</p>
+
+    <div class="filter-bar">
+      <label for="filter">🔍 Filtrar:</label>
+      <input type="text" id="filter" placeholder="Escribí para filtrar...">
+    </div>
+
+    <div class="table-wrapper">
+      <table id="termsTable">
+        <thead>
+          <!-- Se llenará dinámicamente con todas las columnas -->
+        </thead>
+        <tbody>
+          <!-- Se llenará dinámicamente -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <script src="transparencia.js"></script>
+</body>
+</html>

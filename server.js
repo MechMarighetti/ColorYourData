@@ -97,7 +97,8 @@ app.post('/guardar-color', async (req, res) => {
             clics_erroneos: data.clics_erroneos || 'No consentido',
             movimientos_mouse: data.movimientos_mouse || 'No consentido',
             porcentaje_scroll: data.porcentaje_scroll || 'No consentido',
-            pausas_scroll: data.pausas_scroll || 'No consentido'
+            pausas_scroll: data.pausas_scroll || 'No consentido',
+            terms_read: data.terms_read
         };
 
         let { data: newResponse, error: insertError } = await supabase
@@ -132,6 +133,7 @@ app.post('/guardar-color', async (req, res) => {
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
+
 
 // Ruta: /timeline-data
 app.get('/timeline-data', async (req, res) => {
@@ -188,6 +190,23 @@ app.get('/timeline-data', async (req, res) => {
     } catch (err) {
         console.error('Error en /timeline-data:', err);
         res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+app.get('/api/transparencia', async (req, res) => {
+    try {
+        const { data: registros, error } = await supabase
+            .from('respuestas')
+            .select('*')
+            .order('timestamp', { ascending: false })
+            .limit(1000);
+
+        if (error) throw error;
+
+        // Devolver directamente el array de filas (el frontend lo espera como array)
+        res.json(registros || []);
+    } catch (err) {
+        console.error('Error en /api/transparencia:', err);
+        res.status(500).json({ error: 'Error interno' });
     }
 });
 
@@ -249,11 +268,13 @@ app.get('/stats-data', async (req, res) => {
         const formattedTimezones = countBy('timezone').map(item => ({ timezone: item.timezone, count: item.count }));
         const uniqueIps = new Set(rows.map(item => item.ip).filter(Boolean)).size;
         const uniqueFingerprints = new Set(rows.map(item => item.fingerprint).filter(Boolean)).size;
+        const terminosLeidos = rows.filter(item => item.terms_read === true).length;
 
         res.json({
             total: rows.length,
             unique_ips: uniqueIps,
             unique_fingerprints: uniqueFingerprints,
+            terms_read: terminosLeidos,
             colors: formattedColors,
             countries: formattedCountries,
             regions: formattedRegions,
@@ -349,6 +370,33 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+app.get('/transparencia', (req, res) => {
+    res.sendFile(path.join(publicPath, 'transparencia.html'));
+});
+
+app.post('/registrar-lectura', async (req, res) => {
+    try {
+        const { fingerprint } = req.body;
+        if (!fingerprint) return res.status(400).json({ error: 'Fingerprint requerido' });
+
+        // Actualizamos todas las respuestas de este fingerprint
+        const { error } = await supabase
+            .from('respuestas')
+            .update({ terms_read: true })
+            .eq('fingerprint', fingerprint);
+
+        if (error) {
+            console.error('Error al actualizar terms_read:', error);
+            return res.status(500).json({ error: 'Error al registrar lectura' });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error en /registrar-lectura:', err);
+        res.status(500).json({ error: 'Error interno' });
+    }
+});
+
 // --- Exportar la app para Vercel ---
 module.exports = app;
 
@@ -358,5 +406,6 @@ if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`✅ Servidor con Supabase corriendo localmente en http://localhost:${PORT}`);
         console.log(`📁 Sirviendo archivos estáticos desde: ${publicPath}`);
+        console.log(`📁 Sirviendo transparencia desde: ${publicPath}/transparencia`);
     });
 }

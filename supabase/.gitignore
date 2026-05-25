@@ -2,6 +2,9 @@
 .branches
 .temp
 
+# pompts
+.prompts
+
 # dotenvx
 .env.keys
 .env.local

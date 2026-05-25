@@ -17,7 +17,7 @@
         <p>🔒 <strong>Totalmente anónimo:</strong> Nunca te identificaremos. No guardamos nombre, email ni datos personales.</p>
         <p>🎓 <strong>Solo educación:</strong> Este proyecto es parte de la materia Trabajo, Tecnología y Sociedad del IFTS 18.</p>
       </div>
-      <p><a href="terms.html" target="_blank" rel="noopener noreferrer">📖 Leer los Términos y Condiciones completos</a></p>
+      <p><a href="terms.html" target="_blank" id="readTerms" rel="noopener noreferrer">📖 Leer los Términos y Condiciones completos</a></p>
       <label class="checkbox-label">
         <input type="checkbox" id="chkAcepto"> 
         ✅ Entiendo y acepto. ¡Quiero elegir mi color!
@@ -42,9 +42,19 @@
       <button id="btnCompartir" type="button" class="is-hidden">📱 Compartir con amigos</button>
     </div>
     <div class="links-row">
-      <a class="small-link" href="huella.html">🌈 Ver mi historial</a>
-      <a class="small-link" href="stats.html">📊 Ver estadísticas globales</a>
       <a class="small-link" href="huella.html">🔍 Mi huella digital</a>
+      <a class="small-link" href="stats.html">📊 Ver estadísticas globales</a>
+    </div>
+    <div id="shareModal" class="modal is-hidden">
+      <div class="modal-content share-modal-content">
+        <h2>🎉 ¡Color guardado!</h2>
+        <p>¿Querés compartir tu elección con amigos?</p>
+        <div class="share-modal-btns">
+          <button id="btnShareNow" class="modal-btn main">✨ Compartir</button>
+          <button id="btnShareSkip" class="modal-btn">Ahora no</button>
+        </div>
+        <p id="shareCopied" class="is-hidden" style="color:#6a5acd;margin-top:10px;">Link copiado</p>
+      </div>
     </div>
   </div>
   <script src="script.js"></script>

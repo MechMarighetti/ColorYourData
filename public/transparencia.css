@@ -1,0 +1,117 @@
+/* transparencia.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: linear-gradient(135deg, #f9f0ff 0%, #e2f0cb 100%);
+  min-height: 100vh;
+  color: #4a4a4a;
+  padding: 2rem 1rem;
+}
+
+.transparencia-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 30px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+h1 {
+  font-size: 2.2rem;
+  color: #b983ff;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  text-align: center;
+  color: #7c7c7c;
+  margin-bottom: 2rem;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.filter-bar label {
+  font-weight: 600;
+  color: #b983ff;
+  font-size: 1.1rem;
+}
+
+#filter {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.75rem 1.2rem;
+  border: 2px solid #e0c3fc;
+  border-radius: 50px;
+  background: white;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.3s;
+}
+
+#filter:focus {
+  border-color: #b983ff;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  background: white;
+  padding: 0.5rem;
+}
+
+#termsTable {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+#termsTable th {
+  background: #f5e1fd;
+  color: #5c4a72;
+  padding: 0.8rem 0.5rem;
+  text-align: center;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+#termsTable td {
+  padding: 0.7rem 0.5rem;
+  text-align: center;
+  border-bottom: 1px solid #f0e6f6;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#termsTable tbody tr:hover {
+  background-color: #faf5ff;
+  transition: background 0.2s;
+}
+
+/* Hacer que la tabla sea más linda en móviles */
+@media (max-width: 768px) {
+  .transparencia-container {
+    padding: 1rem;
+  }
+  #termsTable th, #termsTable td {
+    padding: 0.5rem 0.3rem;
+    font-size: 0.8rem;
+  }
+}

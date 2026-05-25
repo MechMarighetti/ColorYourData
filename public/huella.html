@@ -9,27 +9,27 @@
 <body class="app-body">
   <main class="insight-page huella-page">
     <nav class="top-actions" aria-label="Navegacion principal">
-      <a class="btn-link" href="index.html">🎨 Elegir mi color</a>
-      <a class="btn-link" href="stats.html">📊 Ver estadisticas</a>
+      <a class="btn-link" href="index.html">🏠 Elegir otro color</a>
+      <a class="btn-link" href="stats.html">📊 Ver estadísticas</a>
     </nav>
 
-    <header class="insight-hero">
+    <header class="insight-hero" id="huellaHeader">
       <div class="hero-badge">🔍 Huella digital</div>
-      <h1>Tu huella digital en esta encuesta</h1>
-      <p>Estos son los rastros que dejaste al elegir tu color. Pasa el mouse sobre cada dato para entender que significa.</p>
+      <h1 id="saludoHuella">Tu huella digital en esta encuesta</h1>
+      <p id="subtituloHuella">Estos son los rastros que dejaste al elegir tu color. Pasá el mouse sobre cada dato para entender qué significa.</p>
     </header>
 
     <section id="emptyState" class="empty-state is-hidden">
-      <h2>🎨 Todavia no encontramos una respuesta tuya</h2>
-      <p>Elegi un color para ver que datos tecnicos y de comportamiento deja una visita simple.</p>
+      <h2>🎨 Todavía no elegiste tu color</h2>
+      <p>¡Te esperamos para descubrir tu huella digital!</p>
       <a class="primary-link" href="index.html">🎨 Elegir mi color</a>
     </section>
 
     <section id="limitedNotice" class="soft-notice is-hidden">
-      🎨 ¡Gracias por elegir tu color! No activaste el seguimiento detallado, asi que solo podemos mostrarte estos datos basicos.
+      🎨 ¡Gracias por elegir tu color! No activaste el seguimiento detallado, así que solo podemos mostrarte estos datos básicos.
     </section>
 
-    <section class="insight-section" aria-labelledby="datos-title">
+    <section class="insight-section fade-in-up" aria-labelledby="datos-title">
       <div class="section-heading">
         <h2 id="datos-title">Datos de tu visita</h2>
         <p id="currentFingerprintName"></p>
@@ -37,9 +37,11 @@
       <div id="currentDataGrid" class="info-grid">
         <div class="loading">Cargando tu huella...</div>
       </div>
+      <button id="toggleTech" class="toggle-tech" type="button">🔍 Ver detalles técnicos</button>
+      <div id="techDetails" class="tech-details"></div>
     </section>
 
-    <section class="insight-section" aria-labelledby="historial-title">
+    <section class="insight-section fade-in-up" aria-labelledby="historial-title">
       <div class="section-heading">
         <h2 id="historial-title">Tus colores anteriores</h2>
         <p>Historial de respuestas detectadas desde tu misma IP.</p>

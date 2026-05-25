@@ -116,6 +116,8 @@ Instrucciones para borrar la base de datos anterior (encuesta.db) y reiniciar el
 Nota: Mantener el estilo lúdico y educativo. Usar emojis con moderación. No elimines el resto de archivos del proyecto.
 Ahora, ejecutá esta tarea paso a paso, generando los archivos completos listos para copiar y pegar.
 
+
+
 Vas a realizar una serie de mejoras estéticas y de experiencia de usuario en el proyecto "Encuesta de Color Favorito y Huella Digital". El objetivo es volver las páginas más cálidas, lúdicas y personalizadas, resaltando el color elegido como protagonista, y agregar un modal de compartir. No debés modificar la funcionalidad de recolección de datos ni los endpoints del backend, solo frontend (HTML, CSS, JS) y pequeñas adiciones en el servidor si fueran necesarias (no es el caso). Trabajá sobre los archivos existentes: index.html, script.js, huella.html, huella.js, stats.html, stats.js, style.css.
 1. Página "Huella Digital" (huella.html + huella.js)
    a) Saludo personalizado
@@ -127,7 +129,7 @@ Crear una tarjeta principal con fondo suave, que contenga:
 Color elegido: círculo grande con el color, más el nombre.
 📍 País y 🌍 Región (con banderita si es posible usando emoji de país, se puede mapear país a emoji manualmente para los más comunes o usar un placeholder).
 🕒 Zona horaria y hora local: si el dato timezone está disponible, calcular la hora local actual en esa zona (usando Intl.DateTimeFormat con la timezone) y mostrarla, ej: "Tu zona horaria: America/Argentina/Buenos_Aires – 14:35".
-🆔 IP (en un tono más pequeño, tal vez en gris clarito o como dato secundario).
+🆔 IP (dato importante pero secundario).
 Esta tarjeta debe ser visualmente atractiva, con bordes redondeados y sombra rosa/lila.
 c) Datos comportamentales "cute"
 El resto de los datos (tiempo de selección, clics erróneos, movimientos del mouse, scroll, etc.) se mostrarán en tarjetas más pequeñas, con ilustraciones (podés usar emojis grandes o íconos CSS).
@@ -150,6 +152,7 @@ Al expandir detalles técnicos, usar una transición de altura.
 b) Corrección de posición del div de zona horaria
 Actualmente hay un problema de posicionamiento en la sección de zona horaria (posiblemente en gráficos o en la tabla de timezones). Revisá los estilos CSS y JS que generan ese elemento, y corregilo para que se alinee correctamente dentro de su contenedor, respetando el layout general. Si es un gráfico, asegurate de que el canvas o el div contenedor tenga el tamaño y posición adecuados.
 c) Mantener el estilo detallado y atractivo
+Tiene que ser lúdico y atractivo. Identificando la eleccion del usuario en esa sesión claramente: "Tu color está acá" tu color lo eligio el %, tanto de tu pais eligio tu color, la gente con tu resolucion de pantalla eligio estos colores, etc. Creativo atractivo ludico. 
 Los gráficos actuales (barras, tortas, etc.) están funcionando bien, solo debemos pulir el diseño: agregar más espacio, colores pastel en las paletas de Chart.js (personalizá las opciones de color), bordes redondeados en los tooltips (con callbacks de Chart.js).
 Asegurar que el resumen general (cards de totales) siga presente y con números grandes.
 d) Navegación
@@ -162,7 +165,7 @@ Título: "🎉 ¡Color guardado!"
 Mensaje: "¿Querés compartir tu elección con amigos?"
 Dos botones:
 "✨ Compartir" (principal, color vibrante)
-"Ahora no" (secundario)
+"Ahora no" (secundario pero claro)
 
 Si el usuario hace clic en "Compartir", se abrirá la funcionalidad nativa de compartir del navegador (navigator.share) con un texto predefinido que incluya el color elegido y un link a la página. Si el navegador no soporta Web Share API, copiar al portapapeles un texto similar y mostrar un tooltip "Link copiado".
 Si hace clic en "Ahora no", simplemente cerrar el modal y mostrar el mensaje de agradecimiento normal.
