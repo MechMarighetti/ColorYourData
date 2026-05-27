@@ -9,11 +9,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     { key: 'id', label: 'ID' },
     { key: 'fingerprint_name', label: 'Nombre' },
     { key: 'color', label: 'Color' },
-    { key: 'ip', label: 'IP' },
+    /* { key: 'ip', label: 'IP' }, */
     { key: 'country', label: 'País' },
     { key: 'region', label: 'Región' },
-    { key: 'latitude', label: 'Latitud' },
-    { key: 'longitude', label: 'Longitud' },
+    /* { key: 'latitude', label: 'Latitud' },
+    { key: 'longitude', label: 'Longitud' }, */
     { key: 'user_agent', label: 'User Agent' },
     { key: 'platform', label: 'Plataforma' },
     { key: 'language', label: 'Idioma' },
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     { key: 'timezone', label: 'Zona horaria' },
     { key: 'cpu_cores', label: 'CPU cores' },
     { key: 'device_memory', label: 'Memoria' },
-    { key: 'fingerprint', label: 'Fingerprint' },
+  /*   { key: 'fingerprint', label: 'Fingerprint' }, */
     { key: 'tiempo_seleccion', label: 'Tiempo (s)' },
     { key: 'clics_erroneos', label: 'Clics erróneos' },
     { key: 'movimientos_mouse', label: 'Mov. mouse' },
@@ -90,9 +90,9 @@ function renderTable(rows, tbody, columnDefs) {
           if (col.key === 'terms_read') {
             value = value == 1 ? '✅ Sí' : '❌ No';
           }
-          if (col.key === 'fingerprint') {
+          /* if (col.key === 'fingerprint') {
             value = `<span title="${escapeHtml(row.fingerprint || '')}">${truncate(value, 10)}</span>`;
-          }
+          } */
           if (col.key === 'timestamp') {
             value = timeAgo(value);
           }
