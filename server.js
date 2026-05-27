@@ -1,6 +1,7 @@
 
 
 // server.js
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
@@ -51,6 +52,13 @@ function random_name(fingerprint) {
     return `${adjetivos[idx1]} ${sustantivos[idx2]}`;
 }
 
+const crypto = require('crypto');
+
+function hashIp(ip) {
+    const salt = "cyd2026tts";
+    return crypto.createHash('sha256').update(ip + salt).digest('hex');
+}
+
 // --- RUTAS DE TU API ---
 
 // Ruta: /guardar-color
@@ -58,6 +66,8 @@ app.post('/guardar-color', async (req, res) => {
     try {
         const data = req.body;
         const cleanIp = getClientIp(req);
+
+        const hashedIp = hashIp(cleanIp);
 
         // --- (Opcional) Geolocalización ---
         let country = 'Desconocido';
@@ -78,7 +88,7 @@ app.post('/guardar-color', async (req, res) => {
         const fingerprintName = random_name(data.fingerprint);
         const payload = {
             color: data.color,
-            ip: cleanIp,
+            ip: hashedIp,
             country: country,
             region: region,
             latitude: data.latitude || null,
