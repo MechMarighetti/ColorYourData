@@ -81,7 +81,7 @@ function makeChart(canvasId, type, labels, data, options = {}) {
 
 function renderCharts(statsData) {
   const rows = statsData.responses || [];
-  const colors = countArray(colorName(normalizeHex(statsData.colors, 'color'))).slice(0, 10);
+  const colors = countArray(statsData.colors, 'color');
   const countries = countArray(statsData.countries, 'country').slice(0, 10);
   const platforms = countArray(statsData.platforms, 'platform').slice(0, 8);
   const languages = countArray(statsData.languages, 'language').slice(0, 8);
@@ -90,7 +90,7 @@ function renderCharts(statsData) {
   const scrollByCountry = groupAverage(rows, 'country', 'porcentaje_scroll').slice(0, 8);
   const resolutionMemory = averageMemoryByResolution(rows).slice(0, 10);
 
-  makeChart('colorsChart', 'bar', colors.map(item => (normalizeHex(item.label))), colors.map(item => item.value), {
+  makeChart('colorsChart', 'bar', colors.map(item => colorName(item.label)), colors.map(item => item.value), {
     label: 'Votos',
     colors: colors.map(item => normalizeHex(item.label)),
     legend: false
