@@ -37,13 +37,96 @@ function renderSummary(statsData, apiStats) {
   const topColor = countArray(apiStats.colores || statsData.colors || [], 'color', 'cantidad')[0];
   const topColorHex = topColor ? normalizeHex(topColor.label) : '#cccccc';
 
+  const termsReadPct = termsReadPercentage(statsData.responses || []);
+
   document.getElementById('summaryCards').innerHTML = `
     <article class="summary-tile"><span>Total de respuestas</span><strong>${total}</strong></article>
     <article class="summary-tile"><span>Paises unicos</span><strong>${countries}</strong></article>
     <article class="summary-tile"><span>Huellas unicas</span><strong>${fingerprints}</strong></article>
     <article class="summary-tile"><span>Color mas elegido</span><strong><span class="mini-color-dot" style="background:${topColorHex}"></span>${topColor ? colorName(topColorHex) : '--'}</strong></article>
+    <article class="summary-tile"><span>Porcentaje que leyó terminos</span><strong>${termsReadPct}%</strong></article>
   `;
 }
+
+function termsReadPercentage(rows, keyCandidates = ['terms_read', 'terminos_leidos', 'termsRead', 'terminosLeidos']) {
+  if (!Array.isArray(rows) || rows.length === 0) return 0;
+  const total = rows.length;
+  let trueCount = 0;
+  rows.forEach(row => {
+    for (const key of keyCandidates) {
+      if (!(key in row)) continue;
+      const v = row[key];
+      if (v === true || v === 1 || v === '1' || String(v).toLowerCase() === 'true' || String(v).toLowerCase() === 'si' || String(v).toLowerCase() === 'sí') {
+        trueCount += 1;
+      }
+      break;
+    }
+  });
+  return Math.round((trueCount / total) * 100);
+}
+
+function getTermsReadCounts(rows) {
+  let read = 0;
+  let notRead = 0;
+  rows.forEach(row => {
+    let isRead = false;
+    for (const key of ['terms_read', 'terminos_leidos', 'termsRead', 'terminosLeidos']) {
+      if (key in row) {
+        const v = row[key];
+        if (v === true || v === 1 || v === '1' || String(v).toLowerCase() === 'true' || String(v).toLowerCase() === 'si' || String(v).toLowerCase() === 'sí') {
+          isRead = true;
+        }
+        break;
+      }
+    }
+    if (isRead) read++;
+    else notRead++;
+  });
+  return { read, notRead };
+}
+
+function renderTermsChart(rows) {
+  const { read, notRead } = getTermsReadCounts(rows);
+  const total = read + notRead;
+  if (total === 0) {
+    document.getElementById('termsChartContainer').innerHTML = '<div class="empty-message">No hay datos de lectura de términos aún.</div>';
+    return;
+  }
+  const ctx = document.getElementById('termsChart');
+  if (!ctx) return;
+  // Destruir gráfico anterior si existe
+  if (window.termsChartInstance) window.termsChartInstance.destroy();
+  window.termsChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Leyeron términos', 'No leyeron términos'],
+      datasets: [{
+        data: [read, notRead],
+        backgroundColor: ['#4caf50', '#f44336'],
+        borderWidth: 0,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem) => {
+              const value = tooltipItem.raw;
+              const percentage = ((value / total) * 100).toFixed(1);
+              return `${tooltipItem.label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      },
+      cutout: '60%'
+    }
+  });
+}
+
 
 function makeChart(canvasId, type, labels, data, options = {}) {
   const ctx = document.getElementById(canvasId);
@@ -175,6 +258,18 @@ function renderTimezoneHeatmap(rows) {
     </table>
   `;
   document.getElementById('timezoneHeatmap').innerHTML = rows.length ? table : '<div class="empty-message">Aun no hay datos suficientes.</div>';
+}
+
+function clearCharts() {
+  charts.forEach(chart => chart.destroy());
+  charts.length = 0;
+}
+
+function trueread(rows) {
+  return rows.reduce((count, row) => {
+    const v = row.terms_read || row.terminos_leidos || row.termsRead || row.terminosLeidos;
+    return count + (v === true || v === 'true' ? 1 : 0);
+  }, 0);
 }
 
 
