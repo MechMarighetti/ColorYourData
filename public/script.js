@@ -1,3 +1,5 @@
+import { COLOR_OPTIONS, COLOR_NAMES, DATA_FIELDS } from './shared/utils.js';
+
 let colorSeleccionado = null;
 let consentimientoComportamiento = false;
 let tiempoInicio = null;
@@ -7,36 +9,20 @@ let pausasScroll = 0;
 let mousePattern = [];
 let lastMouseCell = null;
 let scrollTimeout = null;
+let termsRead = false;
 
-const COLOR_OPTIONS = [
-  { hex: '#FFB3BA', name: 'Rosa Caramelo' },
-  { hex: '#FFDFBA', name: 'Durazno Dulce' },
-  { hex: '#FFFFBA', name: 'Amarillo Mantequilla' },
-  { hex: '#BAFFC9', name: 'Menta Suave' },
-  { hex: '#BAE1FF', name: 'Azul Cielo' },
-  { hex: '#E8BAFF', name: 'Lila Magico' },
-  { hex: '#FFC3A0', name: 'Salmon Rosado' },
-  { hex: '#A0E7E5', name: 'Turquesa Claro' },
-  { hex: '#F5E1FD', name: 'Lavanda Bebe' },
-  { hex: '#B4F8C8', name: 'Verde Primavera' },
-  { hex: '#F9F871', name: 'Amarillo Sol' },
-  { hex: '#FF6F91', name: 'Fucsia Suave' },
-  { hex: '#FFD1DC', name: 'Crema de Fresa' },
-  { hex: '#E6E6FA', name: 'Perla Lavanda' },
-  { hex: '#F7DC6F', name: 'Melon Suave' },
-  { hex: '#F0B27A', name: 'Coral Claro' },
-  { hex: '#76D7C4', name: 'Aqua Fresco' },
-  { hex: '#F7CAC9', name: 'Rosa Cuarzo' },
-  { hex: '#D7BDE2', name: 'Lila Grisaceo' },
-  { hex: '#A3E4D7', name: 'Verde Agua' },
-  { hex: '#F9E79F', name: 'Amarillo Pastel' },
-  { hex: '#FAD7A1', name: 'Naranja Suave' },
-  { hex: '#F5E6CC', name: 'Vainilla' },
-  { hex: '#F2D7D5', name: 'Rosa Viejo' },
-  { hex: '#D4E6F1', name: 'Cielo Anochecer' },
-  { hex: '#A8E6CF', name: 'Menta Helada' },
-  { hex: '#FDEBD0', name: 'Champan' }
-];
+function createDataCard(field, value) {
+
+  const card = el('div'); card.className = 'data-card';
+  const title = el('div'); title.className = 'data-title'; title.textContent = field.emoji + ' ' + field.label;
+  const desc = el('div'); desc.className = 'data-desc'; desc.textContent = field.desc;
+  const val = el('div'); val.className = 'data-value'; val.textContent = (value !== undefined && value !== null && value !== '') ? value : 'No disponible';
+  card.appendChild(title);
+  card.appendChild(val);
+  card.appendChild(desc);
+  return card;
+
+}
 
 function renderColorOptions() {
   const palette = document.getElementById('paletaColores');
@@ -85,7 +71,9 @@ function crearFingerprint() {
   for (let i = 0; i < dataURL.length; i++) {
     hash += dataURL.charCodeAt(i);
   }
-  return hash.toString();
+  const fingerprint = hash.toString();
+  localStorage.setItem('cyd_fingerprint', fingerprint);
+  return fingerprint;
 }
 
 function compressMousePattern(pattern) {
@@ -110,8 +98,10 @@ function getMouseCell(event) {
 }
 
 function getTermsReadStatus() {
-  const leyo = document.getElementById('readTerms');
-  return leyo ? (leyo.dataset.read === 'true' ? 1 : 0) : 0;
+  const leyo = document.getElementById('readTerms').addEventListener('click', () => {
+    termsRead = true;
+  })
+  return termsRead ? 1 : 0;
 }
 
 async function recolectarDatos() {
@@ -127,7 +117,7 @@ async function recolectarDatos() {
     device_memory: navigator.deviceMemory || 'No disponible',
     fingerprint: crearFingerprint(),
     terms_read: getTermsReadStatus(),
-    
+
   };
 
   // Obtener geolocalización
@@ -164,44 +154,44 @@ async function recolectarDatos() {
 }
 
 // Modal
-document.getElementById('chkAcepto').addEventListener('change', function() {
+document.getElementById('chkAcepto').addEventListener('change', function () {
   document.getElementById('btnIniciar').disabled = !this.checked;
 });
 
-document.getElementById('chkComportamiento').addEventListener('change', function() {
+document.getElementById('chkComportamiento').addEventListener('change', function () {
   consentimientoComportamiento = this.checked;
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ... (asegurate de que fingerprintActual esté definido aquí) ...
+  // ... (asegurate de que fingerprintActual esté definido aquí) ...
 
-        const termsLink = document.getElementById('readTerms');
-    if (termsLink) {
-        termsLink.addEventListener('click', async (e) => {
-            // Marcar que leyó los términos (independientemente de la petición)
-            termsRead = true;
+  const termsLink = document.getElementById('readTerms');
+  if (termsLink) {
+    termsLink.addEventListener('click', async (e) => {
+      // Marcar que leyó los términos (independientemente de la petición)
+      termsRead = true;
 
-            if (typeof fingerprintActual !== 'undefined' && fingerprintActual) {
-                try {
-                    await fetch('/registrar-lectura', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ fingerprint: fingerprintActual })
-                    });
-                } catch (err) {
-                    console.warn('No se pudo registrar la lectura:', err);
-                }
-            }
-        });
-    }
+      if (typeof fingerprintActual !== 'undefined' && fingerprintActual) {
+        try {
+          await fetch('/registrar-lectura', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fingerprint: fingerprintActual })
+          });
+        } catch (err) {
+          console.warn('No se pudo registrar la lectura:', err);
+        }
+      }
+    });
+  }
 });
-      
 
 
-document.getElementById('btnIniciar').addEventListener('click', function() {
+
+document.getElementById('btnIniciar').addEventListener('click', function () {
   document.getElementById('modal').classList.add('is-hidden');
   document.getElementById('encuesta').classList.remove('is-hidden');
-  
+
   // Inicializar tracking
   tiempoInicio = Date.now();
   clicsErrarios = 0;
@@ -209,11 +199,19 @@ document.getElementById('btnIniciar').addEventListener('click', function() {
   pausasScroll = 0;
   mousePattern = [];
   lastMouseCell = null;
-  
+
+
+
   if (consentimientoComportamiento) {
     // Listener para mouse
     document.addEventListener('mousemove', handleMouseMove);
-    
+
+    document.addEventListener('mouseover', function (e) {
+      if (e.target.classList.contains('color-card')) {
+        console.log('Hover en colores:', e.target.dataset.color);
+      }
+    });
+
     // Listener para scroll
     window.addEventListener('scroll', handleScroll);
 
@@ -236,7 +234,11 @@ function actualizarBotonGuardar() {
 function seleccionarColor(card) {
   clicsErrarios++;
   colorSeleccionado = card.dataset.color;
-  document.querySelectorAll('.color-card').forEach(opt => opt.classList.remove('selected'));
+  document.querySelectorAll('.color-card').forEach(opt => {
+    if (opt !== card) {
+      opt.classList.remove('selected');
+    }
+  });
   card.classList.add('selected');
   actualizarBotonGuardar();
 }
@@ -250,7 +252,7 @@ function manejarTeclaColor(event) {
 
 function bindColorOptions() {
   document.querySelectorAll('.color-card').forEach(card => {
-    card.addEventListener('click', function() {
+    card.addEventListener('click', function () {
       seleccionarColor(this);
     });
     card.addEventListener('keydown', manejarTeclaColor);
@@ -284,10 +286,11 @@ async function cargarPorcentajes() {
 cargarPorcentajes();
 
 // Guardar
-document.getElementById('btnGuardar').addEventListener('click', async function() {
+document.getElementById('btnGuardar').addEventListener('click', async function () {
   // Detener listeners
   document.removeEventListener('mousemove', handleMouseMove);
   window.removeEventListener('scroll', handleScroll);
+
   if (scrollTimeout) clearTimeout(scrollTimeout);
 
   const datos = await recolectarDatos();
@@ -299,7 +302,7 @@ document.getElementById('btnGuardar').addEventListener('click', async function()
       },
       body: JSON.stringify(datos)
     });
-    
+
     if (response.ok) {
       const result = await response.json();
       if (result.sessionId) {
@@ -326,14 +329,14 @@ function mostrarShareModal(colorHex) {
 
   // Mensaje personalizado con color
   let colorName = '';
-  if (typeof COLOR_OPTIONS !== 'undefined') {
+  if (COLOR_OPTIONS !== 'undefined') {
     const found = COLOR_OPTIONS.find(c => c.hex.toUpperCase() === (colorHex || '').toUpperCase());
     colorName = found ? found.name : colorHex;
   } else {
     colorName = colorHex;
   }
   // Handler compartir
-  btnShare.onclick = async function() {
+  btnShare.onclick = async function () {
     const shareData = {
       title: 'Mi color favorito',
       text: `Elegí el color ${colorName} en la encuesta de color. ¿Cuál elegís vos? 🎨`,
@@ -351,7 +354,7 @@ function mostrarShareModal(colorHex) {
       copiarAlPortapapeles(shareData.text + ' ' + shareData.url, copiedMsg);
     }
   };
-  btnSkip.onclick = function() {
+  btnSkip.onclick = function () {
     modal.classList.add('is-hidden');
     mostrarMensajeFinal();
   };
@@ -387,7 +390,7 @@ function copyShareLink() {
   }
 }
 
-document.getElementById('btnCompartir').addEventListener('click', async function() {
+document.getElementById('btnCompartir').addEventListener('click', async function () {
   const shareData = {
     title: 'Encuesta de Color Favorito',
     text: 'Elegí un color y descubre qué eligen tus amigos. ¡Comparte el enlace!',
@@ -418,7 +421,7 @@ function handleScroll() {
   const docHeight = document.body.scrollHeight - window.innerHeight;
   const scrolled = (scrollTop / docHeight) * 100;
   if (scrolled > maxScroll) maxScroll = scrolled;
-  
+
   // Reiniciar timeout para pausas
   if (scrollTimeout) clearTimeout(scrollTimeout);
   scrollTimeout = setTimeout(() => {

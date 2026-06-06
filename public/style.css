@@ -242,7 +242,7 @@ body {
 
 .paleta-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  grid-template-columns: repeat(5, minmax(100px, 1fr));
   gap: 18px;
   margin-bottom: 24px;
   justify-items: center;
@@ -1075,7 +1075,7 @@ button:disabled {
   margin: 10px 0;
 }
 
-.heatmap-container {
+.heatmap-container{
   display: grid;
   grid-template-columns: repeat(4, 60px);
   gap: 8px;
@@ -1311,8 +1311,8 @@ button:disabled {
     font-size: 1.8em;
   }
 
-  .heatmap-container {
-    grid-template-columns: repeat(4, 50px);
+  .heatmap-container-8x8 {
+    grid-template-columns: repeat(8, 20px);
   }
 
   .heatmap-cell {
@@ -1517,8 +1517,8 @@ button:disabled {
 
 .mini-color-dot {
   display: inline-block;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.95);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
@@ -1664,6 +1664,57 @@ button:disabled {
   .chart-box {
     height: 260px;
   }
+
+ /* Heatmap 8x8 vertical */
+    .heatmap-container-8x8 {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+      width: 100%;
+      max-width: 400px;
+      margin: 16px auto;
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 12px;
+    }
+
+    .heatmap-cell-8x8 {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85em;
+      color: #4a3f72;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+    }
+
+    .heatmap-cell-8x8:hover {
+      transform: scale(1.15);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .heatmap-section {
+      width: 100%;
+    }
+
+    .info-card-value {
+      word-break: break-word;
+    }
+
+    @media (max-width: 500px) {
+      .heatmap-container-8x8 {
+        max-width: 100%;
+        gap: 4px;
+      }
+
+      .heatmap-cell-8x8 {
+        font-size: 0.7em;
+      }
+    }
 }
 
 

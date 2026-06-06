@@ -1,5 +1,7 @@
 // timeline.js - Rediseño aesthetic-cute
 
+import { COLOR_OPTIONS, COLOR_NAMES, DATA_FIELDS, normalizeHex, colorName, hexToRgba } from './shared/utils.js';
+
 const dataFields = [
   { key: 'color', label: '🌈 Color elegido', desc: 'El color que seleccionaste en la encuesta.' },
   { key: 'country', label: '🌍 País', desc: 'Inferido desde IP para saber desde dónde nos visitas.' },
@@ -67,7 +69,7 @@ function renderDatosGrid(data) {
     if ((v === undefined || v === null) && f.key === 'country') v = data.country_name || data.pais || data.country || data.countryCode;
     if ((v === undefined || v === null) && f.key === 'region') v = data.region || data.regionName || data.provincia;
     if (f.key === 'movimientos_mouse' && v && typeof v === 'string') {
-      try { v = JSON.parse(v); v = Array.isArray(v) ? v.join(' → ') : v; } catch(e) {}
+      try { v = JSON.parse(v); v = Array.isArray(v) ? v.join(' → ') : v; } catch (e) { }
     }
     if (f.key === 'timestamp' && v) v = new Date(v).toLocaleString();
     if (f.key === 'tiempo_seleccion' && v) v = `${v} ms`;
@@ -83,7 +85,7 @@ function renderSessionSummary(data) {
   const items = [
     { emoji: '🔒', label: 'IP', value: data.currentIp || data.ip || 'No disponible' },
     { emoji: '📝', label: 'Entradas', value: (data.timeline && data.timeline.length) || 0 },
-    { emoji: '⏱️', label: 'Última', value: data.timeline && data.timeline.length ? timeAgo(data.timeline[data.timeline.length-1].timestamp) : '—' }
+    { emoji: '⏱️', label: 'Última', value: data.timeline && data.timeline.length ? timeAgo(data.timeline[data.timeline.length - 1].timestamp) : '—' }
   ];
   const row = el('div'); row.className = 'summary-row';
   items.forEach(it => {
@@ -117,9 +119,9 @@ function renderTimeline(entries) {
     const details = el('div'); details.className = 'details';
     const name = el('div'); name.className = 'color-name'; name.textContent = entry.color || 'Color';
     const meta = el('div'); meta.className = 'color-meta';
-    const port = el ('div'); port.className = 'entry-port'; port.textContent = entry.port ? `:${entry.port}` : '';
-    const country = el ('div'); country.className = 'entry-country'; country.textContent = entry.country ? ` • ${entry.country}` : '';
-    const porcent = el ('div'); porcent.className = 'entry-porcentaje'; porcent.textContent = entry.porcentaje_scroll ? ` • ${entry.porcentaje_scroll}%` : '';
+    const port = el('div'); port.className = 'entry-port'; port.textContent = entry.port ? `:${entry.port}` : '';
+    const country = el('div'); country.className = 'entry-country'; country.textContent = entry.country ? ` • ${entry.country}` : '';
+    const porcent = el('div'); porcent.className = 'entry-porcentaje'; porcent.textContent = entry.porcentaje_scroll ? ` • ${entry.porcentaje_scroll}%` : '';
     meta.innerHTML = `${timeAgo(entry.timestamp)} ${entry.country ? ' • ' + entry.country : ''} ${entry.region ? ' • ' + entry.region : ''}`;
 
     details.appendChild(name); details.appendChild(meta);
@@ -135,18 +137,20 @@ function renderTimeline(entries) {
 
 async function loadProfileAndRender() {
   const sessionId = sessionStorage.getItem('sessionId');
-  let profile = {};
+let profile = {};
   if (sessionId) {
     try {
       const r = await fetch(`/api/perfil/${sessionId}`);
       if (r.ok) profile = await r.json(); else console.warn('Perfil no disponible', r.status);
     } catch (e) { console.warn('Error fetch perfil', e); }
-  } else {
-    // fallback to server-side ip-based profile
-    try {
-      const r = await fetch('/api/mi-perfil');
-      if (r.ok) profile = await r.json();
-    } catch (e) {}
+  }
+
+  // If profile empty, prepare educational placeholders
+  if (!profile || Object.keys(profile).length === 0) {
+    profile = {
+      currentIp: 'Anónima',
+      timeline: [],
+    };
   }
 
   // Render data cards from the profile (single record)

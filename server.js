@@ -1,46 +1,53 @@
-
-
 // server.js
 
-const express = require('express');
-const { createClient } = require('@supabase/supabase-js');
-const path = require('path');
-require('dotenv').config({ path: '.env.local' });
-const app = express();
+import path from 'path';
+import { fileURLToPath} from 'url';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+import express from 'express';
+import crypto from 'crypto';
 
+
+dotenv.config({ path: '.env.local' });
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
 
 const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
 // Configuración de middlewares
 app.use(express.json()); // Para parsear el cuerpo de las peticiones JSON
 
-// --- Inicialización de Supabase ---
-// Cargamos las variables de entorno que definiremos más tarde.
-// Es crucial que estos nombres coincidan exactamente.
 const supabaseUrl = process.env.CYD_SUPABASE_URL;
 const supabaseAnonKey = process.env.CYD_SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.CYD_SUPABASE_SERVICE_KEY;
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("❌ Error crítico: Las variables de entorno CYD_SUPABASE_URL y CYD_SUPABASE_ANON_KEY no están definidas.");
-    // En un entorno de producción, querrás manejar esto de otra forma,
-    // pero lanzar un error aquí detiene el despliegue si falta algo.
-    throw new Error("Faltan las variables de entorno de Supabase.");
-}
 
 // Creamos el cliente de Supabase para interactuar con la base de datos
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // --- Fin de la inicialización de Supabase ---
 
-// --- Función auxiliar para obtener IP real del cliente ---
-function getClientIp(req) {
-    const forwarded = req.headers['x-forwarded-for'];
-    const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
-    return ip ? ip.replace(/^::ffff:/, '') : 'Desconocido';
+function hashIp(ip) {
+    const salt = "cyd2026tts";
+    
+    const iphash = crypto.createHash('sha256').update(ip + salt).digest('hex');
+    return iphash;
 }
+function hashFingerprint(fingerprint) {
+    const salt = "cyd2026ttsfp";
+    const fphash = crypto.createHash('sha256').update(fingerprint + salt).digest('hex');
+    return fphash;
+}
+
+// en el Server necesito hacer el req del ip, el clinet y el sessionid
 
 function random_name(fingerprint) {
     const adjetivos = ['Luminoso', 'Curioso', 'Saltarin', 'Tranquilo', 'Brillante', 'Oscuro', 'Veloz', 'Sereno', 'Magico', 'Amable', 'Audaz', 'Sutil', 'Elegante', 'Radiante', 'Misterioso', 'Divertido', 'Sabio', 'Dulce', 'Fresco', 'Vibrante'];
     const sustantivos = ['Zorro', 'Nube', 'Lince', 'Pez', 'Gato', 'Luna', 'Sol', 'Estrella', 'Mariposa', 'Colibri', 'Tigre', 'Delfin', 'Arbol', 'Piedra', 'Rio', 'Nube', 'Fenix', 'Dragon', 'Buho', 'Coral'];
+    const verbos = ['Brilla', 'Corre', 'Salta', 'Vuela', 'Nada', 'Danza', 'Canta', 'Ruge', 'Susurra', 'Explora', 'Descubre', 'Ilumina', 'Fluye', 'Crece', 'Resplandece'];
+    const adverbios = ['rápidamente', 'suavemente', 'alegremente', 'silenciosamente', 'valientemente', 'cuidadosamente', 'misteriosamente', 'elegantemente', 'vibrantemente', 'dulcemente'];
+
     const value = String(fingerprint || 'sin-huella');
     let hash = 0;
     for (let i = 0; i < value.length; i++) {
@@ -49,15 +56,31 @@ function random_name(fingerprint) {
     }
     const idx1 = Math.abs(hash) % adjetivos.length;
     const idx2 = Math.abs(hash >> 8) % sustantivos.length;
-    return `${adjetivos[idx1]} ${sustantivos[idx2]}`;
+    const idx3 = Math.abs(hash >> 16) % verbos.length;
+    const idx4 = Math.abs(hash >> 24) % adverbios.length;
+    const nombre_inventado = `${adjetivos[idx1]} ${sustantivos[idx2]}`;
+    const narrativa = `${verbos[idx3]} ${adverbios[idx4]}`;
+    return  `${nombre_inventado}, ${narrativa}` ;
 }
 
-const crypto = require('crypto');
+    async function getGeolocation(ip) {
+        const response = await fetch(`https://api.iplocation.net/?ip=${ip}`);
+        const geo = await response.json();
+        if (geo.response_code === '200') {
+            return {
+                country: geo.country_name || 'Desconocido',
+                region: geo.region || 'No disponible'
+            };
+        }
+        return { country: 'Desconocido', region: 'No disponible' };
+    }
+    // --- Función auxiliar para obtener IP real del cliente ---
+    function getClientIp(req) {
+        const forwarded = req.headers['x-forwarded-for'];
+        const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+        return ip ? ip.replace(/^::ffff:/, '') : 'Desconocido';
+    }
 
-function hashIp(ip) {
-    const salt = "cyd2026tts";
-    return crypto.createHash('sha256').update(ip + salt).digest('hex');
-}
 
 // --- RUTAS DE TU API ---
 
@@ -85,10 +108,10 @@ app.post('/guardar-color', async (req, res) => {
 
         // 1. Insertamos la nueva respuesta en la tabla 'respuestas'
         // Asegúrate de que los nombres de las columnas coincidan con tu tabla en Supabase.
-        const fingerprintName = random_name(data.fingerprint);
+        
         const payload = {
             color: data.color,
-            ip: hashedIp,
+            ip: hashIp(cleanIp), // Guardamos la IP hasheada para mayor privacidad
             country: country,
             region: region,
             latitude: data.latitude || null,
@@ -101,8 +124,8 @@ app.post('/guardar-color', async (req, res) => {
             timezone: data.timezone,
             cpu_cores: data.cpu_cores,
             device_memory: data.device_memory,
-            fingerprint: data.fingerprint,
-            fingerprint_name: fingerprintName,
+            fingerprint: hashFingerprint(data.fingerprint), // Guardamos la huella hasheada para mayor privacidad
+            fingerprint_name: random_name(data.fingerprint), // Nombre inventado basado en la huella (sin revelar la huella real)
             tiempo_seleccion: data.tiempo_seleccion || 'No consentido',
             clics_erroneos: data.clics_erroneos || 'No consentido',
             movimientos_mouse: data.movimientos_mouse || 'No consentido',
@@ -135,8 +158,9 @@ app.post('/guardar-color', async (req, res) => {
 
         // El ID de la nueva respuesta estará en newResponse[0].id
         const sessionId = newResponse ? newResponse[0].id : null;
+       // Guardamos la IP real para mostrarla en el perfil, aunque solo guardamos la versión hasheada en la base de datos.
 
-        res.json({ success: true, sessionId: sessionId });
+        res.json({ success: true, sessionId: sessionId});
 
     } catch (err) {
         console.error('Error en /guardar-color:', err);
@@ -145,16 +169,40 @@ app.post('/guardar-color', async (req, res) => {
 });
 
 
+app.get('/perfil', (req, res) => {
+    res.sendFile(path.join(publicPath, 'perfil.html'));
+});
+
+
+app.get('/api/perfil/:fingerprint', async (req, res) => {
+  try {
+    const { fingerprint } = req.params;
+    const { data, error } = await supabase
+      .from('respuestas')
+      .select('*')
+      .eq('fingerprint', fingerprint)
+      .order('timestamp', { ascending: false })
+      .limit(1);
+    
+    if (error || !data || data.length === 0) 
+      return res.status(404).json({ error: 'No encontrado' });
+    res.json(data[0]);
+  } catch(err) {
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 // Ruta: /timeline-data
 app.get('/timeline-data', async (req, res) => {
     try {
-        const cleanIp = getClientIp(req);
+        const cleanIp = req.query.ip || getClientIp(req);
+        const hashedIp = hashIp(cleanIp);
 
         // 1. Obtener el timeline para esta IP
         const { data: timeline, error: timelineError } = await supabase
             .from('respuestas')
             .select('*')
-            .eq('ip', cleanIp)
+            .eq('ip', hashedIp)
             .order('timestamp', { ascending: true });
 
         if (timelineError) {
@@ -195,7 +243,7 @@ app.get('/timeline-data', async (req, res) => {
         // Nota: Para un caso de uso real, lo mejor es crear una vista en Supabase
         // o ajustar la consulta para mayor eficiencia.
 
-        res.json({ currentIp: cleanIp, timeline: timeline || [], groupedByIp: groupedByIp });
+        res.json({ currentIp: cleanIp, timeline: timeline, hashedIp: hashedIp || [], groupedByIp: groupedByIp });
 
     } catch (err) {
         console.error('Error en /timeline-data:', err);
@@ -224,11 +272,13 @@ app.get('/api/transparencia', async (req, res) => {
 app.get('/api/mi-perfil', async (req, res) => {
     try {
         const cleanIp = getClientIp(req);
+        const hashedIp = hashIp(cleanIp);
+
         // Obtenemos la última respuesta para esta IP
         const { data: perfil, error } = await supabase
             .from('respuestas')
             .select('*')
-            .eq('ip', cleanIp)
+            .eq('ip', hashedIp)
             .order('timestamp', { ascending: false })
             .limit(1);
 
@@ -303,22 +353,60 @@ app.get('/stats-data', async (req, res) => {
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
-// Ruta: /api/perfil/:id
-app.get('/api/perfil/:id', async (req, res) => {
+// Ruta: /api/perfil (alias de /api/mi-perfil para el visitante actual)
+app.get('/api/perfil', async (req, res) => {
     try {
-        const { id } = req.params;
+        const cleanIp = getClientIp(req);
+        const iphash = hashIp(cleanIp);
+
+        // Obtenemos la última respuesta para esta IP
+        const { data: perfil, error } = await supabase
+            .from('respuestas')
+            .select('*')
+            .eq('ip', iphash)
+            .order('timestamp', { ascending: false })
+            .limit(1);
+
+        if (error) {
+            console.error('Error al obtener perfil:', error);
+            throw new Error(error.message);
+        }
+
+        if (!perfil || perfil.length === 0) {
+            return res.status(404).json({ error: 'No se encontraron respuestas para esta IP' });
+        }
+
+        res.json(perfil[0]); // Devolvemos el primer (y único) resultado.
+    } catch (err) {
+        console.error('Error en /api/perfil:', err);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+// Ruta: /api/perfil/:id (por ID específico)
+app.get('/api/perfil/:id', async (req, res) => { 
+    try {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: 'ID inválido' });
+  }
+        
         const { data: perfil, error } = await supabase
             .from('respuestas')
             .select('*')
             .eq('id', id)
-            .single(); // Esperamos un solo resultado
+            .single();
 
         if (error) {
-            if (error.code === 'PGRST116') { // Código de "no se encontró ninguna fila"
+            if (error.code === 'PGRST116') {
                 return res.status(404).json({ error: 'No se encontró el perfil' });
             }
-            console.error('Error al obtener perfil por ID:', error);
-            throw new Error(error.message);
+            console.error('Error SQL:', error);
+            return res.status(500).json({ error: 'Error en la consulta' });
+        }
+
+        if (!perfil) {
+            return res.status(404).json({ error: 'Perfil no existe' });
         }
 
         res.json(perfil);
@@ -336,6 +424,7 @@ app.get('/api/stats', async (req, res) => {
 
         const coloresData = await supabase.from('respuestas').select('color').not('color', 'is', null);
         const paisesData = await supabase.from('respuestas').select('country').not('country', 'is', null);
+        const cpu_cores = await supabase.from('respuestas').select('cpu_cores').not('cpu_cores', 'is', null).not('cpu_cores', 'eq', 'No consentido');
 
         const avgTiempoData = await supabase.from('respuestas').select('tiempo_seleccion').not('tiempo_seleccion', 'is', null).not('tiempo_seleccion', 'eq', 'No consentido');
         const avgClicsData = await supabase.from('respuestas').select('clics_erroneos').not('clics_erroneos', 'is', null).not('clics_erroneos', 'eq', 'No consentido');
@@ -408,10 +497,11 @@ app.post('/registrar-lectura', async (req, res) => {
 });
 
 // --- Exportar la app para Vercel ---
-module.exports = app;
+export default app;
 
 // --- Iniciar servidor localmente (solo para pruebas) ---
-if (require.main === module) {
+const isLocal = process.env.NODE_ENV !== 'production';
+if (isLocal) {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
         console.log(`✅ Servidor con Supabase corriendo localmente en http://localhost:${PORT}`);

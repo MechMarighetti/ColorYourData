@@ -1,76 +1,5 @@
-const COLOR_NAMES = {
-  '#FFB3BA': 'Rosa Caramelo',
-  '#FFDFBA': 'Durazno Dulce',
-  '#FFFFBA': 'Amarillo Mantequilla',
-  '#BAFFC9': 'Menta Suave',
-  '#BAE1FF': 'Azul Cielo',
-  '#E8BAFF': 'Lila Magico',
-  '#FFC3A0': 'Salmon Rosado',
-  '#A0E7E5': 'Turquesa Claro',
-  '#F5E1FD': 'Lavanda Bebe',
-  '#B4F8C8': 'Verde Primavera',
-  '#F9F871': 'Amarillo Sol',
-  '#FF6F91': 'Fucsia Suave',
-  '#FFD1DC': 'Crema de Fresa',
-  '#E6E6FA': 'Perla Lavanda',
-  '#F7DC6F': 'Melon Suave',
-  '#F0B27A': 'Coral Claro',
-  '#76D7C4': 'Aqua Fresco',
-  '#F7CAC9': 'Rosa Cuarzo',
-  '#D7BDE2': 'Lila Grisaceo',
-  '#A3E4D7': 'Verde Agua',
-  '#F9E79F': 'Amarillo Pastel',
-  '#FAD7A1': 'Naranja Suave',
-  '#F5E6CC': 'Vainilla',
-  '#F2D7D5': 'Rosa Viejo',
-  '#D4E6F1': 'Cielo Anochecer',
-  '#A8E6CF': 'Menta Helada',
-  '#FDEBD0': 'Champan'
-};
+import { COLOR_OPTIONS, COLOR_NAMES, DATA_FIELDS, normalizeHex, colorName, hexToRgba  } from './shared/utils.js';
 
-const DATA_FIELDS = [
-  { key: 'color', icon: '🎨', label: 'Color elegido', description: 'Es la respuesta central de la encuesta y permite comparar preferencias de color de forma anonima.' },
-  { key: 'ip', icon: '📍', label: 'IP', description: 'Se usa para agrupar visitas aproximadas y construir tu historial local sin pedir nombre ni email.' },
-  { key: 'country_region', icon: '🌎', label: 'Pais y region', description: 'La ubicacion aproximada ayuda a ver tendencias por zona geografica sin identificarte personalmente.' },
-  { key: 'tiempo_seleccion', icon: '⏱️', label: 'Tiempo de seleccion', description: 'Mide cuanto tardaste en elegir para explicar como una pagina puede analizar tu comportamiento.' },
-  { key: 'clics_erroneos', icon: '🖱️', label: 'Clics erroneos', description: 'Cuenta cambios o intentos previos para mostrar señales de decision o exploracion.' },
-  { key: 'movimientos_mouse', icon: '🧭', label: 'Movimientos del mouse', description: 'Resume por que zonas pasaste el cursor; no guarda coordenadas exactas, solo un patron simplificado.' },
-  { key: 'porcentaje_scroll', icon: '📜', label: 'Porcentaje de scroll', description: 'Indica que tanto recorriste la pagina y si llegaste a leer las secciones inferiores.' },
-  { key: 'pausas_scroll', icon: '⏸️', label: 'Pausas de scroll', description: 'Detecta momentos de pausa durante la lectura para explicar analitica de atencion.' },
-  { key: 'platform_user_agent', icon: '💻', label: 'Plataforma y navegador', description: 'El navegador revela sistema operativo, version y motor; combinado con otros datos puede diferenciar dispositivos.' },
-  { key: 'language', icon: '🗣️', label: 'Idioma', description: 'El idioma del navegador permite analizar preferencias culturales y adaptar contenido.' },
-  { key: 'screen_resolution', icon: '📺', label: 'Resolucion de pantalla', description: 'Ayuda a entender el tipo de dispositivo y tambien forma parte de una huella tecnica.' },
-  { key: 'color_depth', icon: '🌈', label: 'Profundidad de color', description: 'Cantidad de bits de color soportados por la pantalla; es una senal tecnica del dispositivo.' },
-  { key: 'timezone', icon: '🕒', label: 'Zona horaria', description: 'Permite inferir zona geografica aproximada y comparar horarios de uso.' },
-  { key: 'cpu_cores', icon: '🧠', label: 'Nucleos de CPU', description: 'Cantidad de nucleos logicos reportados por el navegador; aporta contexto sobre el dispositivo.' },
-  { key: 'device_memory', icon: '💾', label: 'Memoria del dispositivo', description: 'Memoria aproximada informada por el navegador; otra pista tecnica del equipo.' },
-  { key: 'fingerprint', icon: '🔐', label: 'Huella digital', description: 'Identificador generado desde caracteristicas del navegador. Aqui lo mostramos con un nombre amable y anonimo.' },
-  { key: 'timestamp', icon: '🗓️', label: 'Hora de la visita', description: 'Fecha y hora en que se registro la eleccion para ordenar el historial.' }
-];
-
-function random_name(fingerprint) {
-  const adjetivos = ['Luminoso', 'Curioso', 'Saltarin', 'Tranquilo', 'Brillante', 'Oscuro', 'Veloz', 'Sereno', 'Magico', 'Amable', 'Audaz', 'Sutil', 'Elegante', 'Radiante', 'Misterioso', 'Divertido', 'Sabio', 'Dulce', 'Fresco', 'Vibrante'];
-  const sustantivos = ['Zorro', 'Nube', 'Lince', 'Pez', 'Gato', 'Luna', 'Sol', 'Estrella', 'Mariposa', 'Colibri', 'Tigre', 'Delfin', 'Arbol', 'Piedra', 'Rio', 'Nube', 'Fenix', 'Dragon', 'Buho', 'Coral'];
-  const value = String(fingerprint || 'sin-huella');
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) {
-    hash = ((hash << 5) - hash) + value.charCodeAt(i);
-    hash |= 0;
-  }
-  const idx1 = Math.abs(hash) % adjetivos.length;
-  const idx2 = Math.abs(hash >> 8) % sustantivos.length;
-  return `${adjetivos[idx1]} ${sustantivos[idx2]}`;
-}
-
-function normalizeHex(color) {
-  if (!color) return '#cccccc';
-  return color.startsWith('#') ? color.toUpperCase() : `#${color}`.toUpperCase();
-}
-
-function colorName(color) {
-  const hex = normalizeHex(color);
-  return COLOR_NAMES[hex] || hex;
-}
 
 function hasTrackingConsent(data) {
   return data && data.tiempo_seleccion && data.tiempo_seleccion !== 'No consentido';
@@ -96,7 +25,7 @@ function formatValue(key, data) {
     const hex = normalizeHex(data.color);
     return `<span class="value-with-dot"><span class="mini-color-dot" style="background:${hex}"></span>${colorName(hex)} <small>${hex}</small></span>`;
   }
-  if (key === 'ip') return data.ip || data.currentIp || notAvailable;
+  if (key === 'ip') return data.currentIp || data.ip || notAvailable;
   if (key === 'country_region') return `${data.country || 'Pais desconocido'} · ${data.region || 'Region no disponible'}`;
   if (key === 'tiempo_seleccion') {
     if (data.tiempo_seleccion === 'No consentido') return 'No consentido';
@@ -105,12 +34,17 @@ function formatValue(key, data) {
   }
   if (key === 'clics_erroneos') return data.clics_erroneos || 'No consentido';
   if (key === 'movimientos_mouse') {
-    if (!data.movimientos_mouse || data.movimientos_mouse === 'No consentido') return 'No consentido';
+    if (!data.movimientos_mouse || data.movimientos_mouse === 'No consentido') {
+      return '<span style="color: #999; font-style: italic;">No consentido</span>';
+    }
     try {
       const parsed = JSON.parse(data.movimientos_mouse);
-      return Array.isArray(parsed) ? `pasaste por ${new Set(parsed).size} zonas` : notAvailable;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return renderHeatmap(parsed);
+      }
+      return '<span style="color: #999; font-style: italic;">Sin datos de movimiento</span>';
     } catch (err) {
-      return 'Patron no disponible';
+      return '<span style="color: #999; font-style: italic;">No se pudo procesar</span>';
     }
   }
   if (key === 'porcentaje_scroll') return data.porcentaje_scroll && data.porcentaje_scroll !== 'No consentido' ? `${data.porcentaje_scroll}%` : 'No consentido';
@@ -133,13 +67,208 @@ function shortBrowser(userAgent) {
   if (userAgent.includes('Chrome/')) return 'Chrome';
   if (userAgent.includes('Firefox/')) return 'Firefox';
   if (userAgent.includes('Safari/') && !userAgent.includes('Chrome/')) return 'Safari';
+  if (userAgent.includes('OPR/') || userAgent.includes('Opera/')) return 'Opera';
+
   return userAgent.slice(0, 42);
 }
+
+function renderHeatmap(movimientos) {
+  // Convertir a grid 8x8 (64 celdas total)
+  const frecuencias = {};
+  for (let i = 0; i < 64; i++) frecuencias[i] = 0;
+
+  if (Array.isArray(movimientos)) {
+    movimientos.forEach(cellIdx => {
+      if (cellIdx >= 0 && cellIdx < 64) frecuencias[cellIdx]++;
+    });
+  }
+
+  const maxFrecuencia = Math.max(...Object.values(frecuencias), 1);
+
+  const getHeatmapColor = (freq, max) => {
+    if (freq === 0) return '#f0f0f0';
+    const ratio = freq / max;
+    if (ratio > 0.66) return '#ff6f91';
+    if (ratio > 0.33) return '#ffc3a0';
+    return '#b4f8c8';
+  };
+
+  const getFrequencyLabel = (freq) => {
+    if (freq === 0) return '-';
+    if (freq === 1) return '1';
+    if (freq <= 5) return freq;
+    return freq + '+';
+  };
+
+
+  let heatmapHtml = '<div class="heatmap-container-8x8">';
+  for (let i = 0; i < 64; i++) {
+    const freq = frecuencias[i];
+    const color = getHeatmapColor(freq, maxFrecuencia);
+    heatmapHtml += `
+      <div class="heatmap-cell-8x8" style="background-color: ${color};" title="Celda ${i}: ${freq} visitas">
+        ${getFrequencyLabel(freq)}
+      </div>
+    `;
+  }
+  heatmapHtml += '</div>';
+
+  return `
+    <div class="heatmap-section-8x8">
+      <p style="font-size: 0.9em; color: #888; margin: 12px 0 8px 0;">Rojo = mucho movimiento | Naranja = algo | Verde = poco</p>
+      ${heatmapHtml}
+      <p style="text-align: center; color: #888; font-size: 0.85em; margin-top: 12px;">
+        Registramos <strong>${movimientos.length || 0}</strong> posiciones del mouse en una cuadrícula 8x8.
+      </p>
+    </div>
+    <div class="heatmap-cell-8x8" style="background-color: ${color};" title="Celda ${i}: ${freq} visitas">
+        ${getFrequencyLabel(freq)}
+      </div>
+  `;
+}
+
 
 function fieldsFor(data) {
   if (hasTrackingConsent(data)) return DATA_FIELDS;
   return DATA_FIELDS.filter(field => ['color', 'country_region', 'timestamp'].includes(field.key));
 }
+
+function showRealip(profile) {
+  ip = profile.cleanIp || 'IP no disponible';
+  return DATA_FIELDS.ip = ip;
+}
+
+function renderPerfil(data) {
+
+  const contentDiv = document.getElementById('content');
+  let html = '';
+
+  // Sección: Tu color elegido
+  html += `
+    <div class="section">
+      <h2>🎨 Tu color elegido</h2>
+      <div class="color-preview" style="background-color: ${data.color};"></div>
+      <p class="profile-color-text" style="color: ${data.color};">${data.color}</p>
+      <p class="profile-country-text">De: <strong>${data.country || 'Desconocido'}</strong></p>
+    </div>
+  `;
+
+  // Sección: Tiempo de decisión
+  const tiempoMs = parseInt(data.tiempo_seleccion);
+  const tiempoSeg = isNaN(tiempoMs) ? '--' : (tiempoMs / 1000).toFixed(2);
+  let interpretacionTiempo = '';
+
+  if (tiempoMs < 2000) {
+    interpretacionTiempo = '⚡ ¡Rapidísimo! Alguien claramente tiene un color favorito.';
+  } else if (tiempoMs <= 5000) {
+    interpretacionTiempo = '🧐 Lo pensaste un poquito, fue una buena elección.';
+  } else {
+    interpretacionTiempo = '🐢 ¡Te tomaste tu tiempo! Reflexionaste antes de decidir.';
+  }
+
+  html += `
+    <div class="section">
+      <h2>⏱️ Tiempo de decisión</h2>
+      <div class="stat-value">${tiempoSeg}s</div>
+      <div class="interpretation">${interpretacionTiempo}</div>
+    </div>
+  `;
+
+  // Sección: ¿Indeciso o decidido?
+  const clicsErroneos = (data.clics_erroneos === 'No consentido' || !data.clics_erroneos) ? 0 : parseInt(data.clics_erroneos);
+  let interpretacionClics = '';
+
+  if (clicsErroneos === 0) {
+    interpretacionClics = '🎯 Súper decidido/a. Elegiste a la primera.';
+  } else if (clicsErroneos <= 2) {
+    interpretacionClics = '🔄 Exploraste un par de opciones, curiosidad sana.';
+  }
+  else if (clicsErroneos > 10) {
+    interpretacionClics = '🎨 ¡Cuantos clicks! Había muchas opciones, lo entendemos.';
+
+  } else {
+    interpretacionClics = '🎨 ¡Las posibilidades son infinitas!';
+  }
+
+  html += `
+    <div class="section">
+      <h2>🤔 ¿Decidido?</h2>
+      <div class="stat-value">${clicsErroneos} cambios</div>
+      <div class="interpretation">${interpretacionClics}</div>
+    </div>
+  `;
+
+  // Sección: Mapa de calor de movimientos
+  const movimientosStr = data.movimientos_mouse;
+  if (movimientosStr && movimientosStr !== 'No consentido') {
+    try {
+      const movimientos = JSON.parse(movimientosStr);
+      if (Array.isArray(movimientos) && movimientos.length > 0) {
+        html += renderHeatmap(movimientos);
+      } else {
+        html += `
+         
+            <h2>🗺️ Mapa de calor de tus movimientos</h2>
+            <div class="no-data">No se registraron movimientos (no diste permiso).</div>
+         
+        `;
+      }
+    } catch (err) {
+      html += `
+       
+          <h2>🗺️ Mapa de calor de tus movimientos</h2>
+          <div class="no-data">No se registraron movimientos válidos.</div>
+        
+      `;
+    }
+  } else {
+    html += `
+     
+        <h2>🗺️ Mapa de calor de tus movimientos</h2>
+        <div class="no-data">No se registraron movimientos (no diste permiso).</div>
+     
+    `;
+  }
+
+  // Sección: Tu exploración de la página
+  const scrollPorcentaje = (data.porcentaje_scroll === 'No consentido' || !data.porcentaje_scroll) ? 0 : parseInt(data.porcentaje_scroll);
+  const pausasScroll = (data.pausas_scroll === 'No consentido' || !data.pausas_scroll) ? 0 : parseInt(data.pausas_scroll);
+
+  let scrollTexto = '';
+  if (scrollPorcentaje === 0) {
+    scrollTexto = 'Casi no hiciste scroll, fuiste directo al color. 🎯';
+  } else {
+    scrollTexto = `Viste el <strong>${scrollPorcentaje}%</strong> de la página.`;
+  }
+
+  let pausasTexto = '';
+  if (pausasScroll > 0) {
+    pausasTexto = `<p>📖 Paraste <strong>${pausasScroll} veces</strong> a mirar con atención.</p>`;
+  }
+
+  renderHeatmap(data.movimientos_mouse);
+
+
+
+  renderSessionSummary(data);
+  renderDatosGrid(data);
+
+
+  html += `
+    <div class="section">
+      <h2>👀 Tu exploración de la página</h2>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: ${Math.min(scrollPorcentaje, 100)}%;"></div>
+      </div>
+      <p>${scrollTexto}</p>
+      ${pausasTexto}
+    </div>
+  `;
+
+  contentDiv.innerHTML = html;
+}
+
+
 
 function renderDataGrid(container, data, opts = {}) {
   // Cute/educativo: mensajes lúdicos para algunos campos
@@ -183,11 +312,11 @@ function renderDataGrid(container, data, opts = {}) {
   const isTech = opts.techOnly;
   const fields = isTech
     ? DATA_FIELDS.filter(f => [
-        'platform_user_agent','screen_resolution','color_depth','timezone','cpu_cores','device_memory','language','fingerprint'
-      ].includes(f.key))
+      'platform_user_agent', 'screen_resolution', 'color_depth', 'timezone', 'cpu_cores', 'device_memory', 'language', 'fingerprint'
+    ].includes(f.key))
     : fieldsFor(data).filter(f => ![
-        'platform_user_agent','screen_resolution','color_depth','timezone','cpu_cores','device_memory','language','fingerprint'
-      ].includes(f.key));
+      'platform_user_agent', 'screen_resolution', 'color_depth', 'timezone', 'cpu_cores', 'device_memory', 'language', 'fingerprint'
+    ].includes(f.key));
   container.innerHTML = fields.map(field => {
     let value = formatValue(field.key, data);
     let cute = '';
@@ -238,7 +367,8 @@ async function openHistoryDetail(id) {
   modal.classList.remove('is-hidden');
 
   try {
-    const response = await fetch(`/api/perfil/${id}`);
+    const hashedId = hashId(id);
+    const response = await fetch(`/api/perfil/${hashedId}`);
     if (!response.ok) throw new Error('No se pudo cargar el detalle');
     const data = await response.json();
     renderDataGrid(modalContent, data);
@@ -257,7 +387,7 @@ function showSaludoPersonalizado(profile) {
   const subtitulo = document.getElementById('subtituloHuella');
   if (profile && profile.fingerprint) {
     const nombre = profile.fingerprint_name || random_name(profile.fingerprint);
-    saludo.textContent = `✨ Hola, ${nombre} ✨`;
+    saludo.textContent = `✨ ¡Hola, ${nombre}! ✨`;
     subtitulo.textContent = `Elegiste el color ${colorName(profile.color)} y así te vimos pasar por nuestra encuesta.`;
   } else {
     saludo.textContent = 'Todavía no elegiste tu color';
@@ -265,7 +395,22 @@ function showSaludoPersonalizado(profile) {
   }
 }
 
+async function obtenerMiPerfil() {
+  try {
+    const response = await fetch('/api/perfil');
+    if (!response.ok) throw new Error('No se pudo cargar el perfil');
+    return await response.json();
+  } catch (err) {
+    console.warn('Error al obtener perfil', err);
+    return null;
+  }}
+
 async function initHuella() {
+  const profile = await obtenerMiPerfil();
+  if (!profile) {
+    document.getElementById('emptyState').classList.remove('is-hidden');
+    return;
+  }
   const grid = document.getElementById('currentDataGrid');
   const empty = document.getElementById('emptyState');
   const notice = document.getElementById('limitedNotice');
@@ -275,7 +420,7 @@ async function initHuella() {
 
   try {
     const [profileResponse, timelineResponse] = await Promise.all([
-      fetch('/api/mi-perfil'),
+      fetch('/api/perfil'),
       fetch('/timeline-data')
     ]);
 
@@ -323,7 +468,7 @@ async function initHuella() {
     grid.innerHTML = '<div class="error">No pudimos cargar tu huella. Proba de nuevo más tarde.</div>';
     showSaludoPersonalizado(null);
   }
-}
+};
 
 document.getElementById('closeModal').addEventListener('click', closeModal);
 document.getElementById('detailModal').addEventListener('click', event => {

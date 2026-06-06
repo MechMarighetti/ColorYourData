@@ -1,45 +1,44 @@
+import { COLOR_OPTIONS, COLOR_NAMES, DATA_FIELDS } from './shared/utils.js';
+
 document.addEventListener('DOMContentLoaded', async function() {
   const contentDiv = document.getElementById('content');
-
-  try {
-    // Intentamos obtener sessionId y pedir el perfil por id; si no existe, fallback a /api/mi-perfil
+  
+  async function loadProfile() {
     const sessionId = sessionStorage.getItem('sessionId');
-    let response;
+    
     if (sessionId) {
-      response = await fetch(`/api/perfil/${sessionId}`);
-    } else {
-      response = await fetch('/api/mi-perfil');
-    }
-
-    if (response.status === 404) {
+      try {
+        const r = await fetch(`/api/perfil/${sessionId}`);
+        if (r.ok) {
+          const data = await r.json();
+          return data;
+        } else {
+          console.warn('Perfil no disponible', r.status);
+          return null;
+        }
+      } catch (e) { 
+        console.warn('Error fetch perfil', e); 
+        return null; 
+      }
+     const profile = await loadProfile();
+    
+    // Si no hay perfil, mostrar mensaje
+    if (!perfil) {
       contentDiv.innerHTML = `
-        <div class="error">
-          <p>🎨 Aún no has guardado ningún color favorito.</p>
-          <p><a class="inline-action-link" href="index.html">Ir a la encuesta</a></p>
-        </div>
-      `;
-      return;
-    }
-
-    if (!response.ok) {
-      throw new Error('Error al cargar el perfil');
-    }
-
-    const data = await response.json();
-    renderPerfil(data);
-  } catch (err) {
-    console.error(err);
-    contentDiv.innerHTML = `
       <div class="error">
-        <p>❌ Error al cargar tu perfil. Intenta de nuevo más tarde.</p>
-        <p><a class="inline-action-link" href="index.html">Volver al inicio</a></p>
+      <p>🎨 Aún no has guardado ningún color favorito.</p>
+      <p><a class="inline-action-link" href="index.html">Ir a la encuesta</a></p>
       </div>
-    `;
-  }
-});
+      `;
+      return null;
+    }
+    
+  }};
+  
 
-function renderPerfil(data) {
-  const contentDiv = document.getElementById('content');
+  function renderPerfil(data) {
+    
+    const contentDiv = document.getElementById('content');
   let html = '';
 
   // Sección: Tu color elegido
@@ -47,6 +46,9 @@ function renderPerfil(data) {
     <div class="section">
       <h2>🎨 Tu color elegido</h2>
       <div class="color-preview" style="background-color: ${data.color};"></div>
+      <p class="profile-color-name">${COLOR_NAMES[data.color] || data.color}</p>
+      <p class="profile-color-name">${data.nombre || 'Nombre no disponible'}</p>
+    
       <p class="profile-color-text" style="color: ${data.color};">${data.color}</p>
       <p class="profile-country-text">De: <strong>${data.country || 'Desconocido'}</strong></p>
     </div>
@@ -140,6 +142,27 @@ function renderPerfil(data) {
   if (pausasScroll > 0) {
     pausasTexto = `<p>📖 Te detuviste <strong>${pausasScroll} veces</strong> a leer con atención.</p>`;
   }
+function renderSessionSummary(data) {
+  const wrap = document.getElementById('sessionSummary');
+  wrap.innerHTML = '';
+  const items = [
+    { emoji: '🔒', label: 'IP', value: data.currentIp || data.ip || 'No disponible' },
+    { emoji: '📝', label: 'Entradas', value: (data.timeline && data.timeline.length) || 0 },
+    { emoji: '⏱️', label: 'Última', value: data.timeline && data.timeline.length ? timeAgo(data.timeline[data.timeline.length - 1].timestamp) : '—' }
+  ];
+  const row = el('div'); row.className = 'summary-row';
+  items.forEach(it => {
+    const card = el('div'); card.className = 'summary-card';
+    card.innerHTML = `<div class="sum-emoji">${it.emoji}</div><div class="sum-body"><div class="sum-label">${it.label}</div><div class="sum-value">${it.value}</div></div>`;
+    row.appendChild(card);
+  });
+  wrap.appendChild(row);
+}
+
+  renderPerfil(data);
+  renderDatosGrid(data);
+  renderSessionSummary(data);
+ 
 
   html += `
     <div class="section">
@@ -153,7 +176,7 @@ function renderPerfil(data) {
   `;
 
   contentDiv.innerHTML = html;
-}
+};
 
 function renderHeatmap(movimientos) {
   // Contar frecuencias (celdas 0-15)
@@ -164,14 +187,14 @@ function renderHeatmap(movimientos) {
     if (cellIdx >= 0 && cellIdx < 16) frecuencias[cellIdx]++;
   });
 
-  const maxFrecuencia = Math.max(...Object.values(frecuencias));
+  const maxFrecuencia = Math.max(...Object.values(frecuencias), 1);
 
   const getHeatmapColor = (freq, max) => {
-    if (freq === 0) return '#f0f0f0';
+    if (freq === 0) return '#e0e0e0';
     const ratio = freq / max;
-    if (ratio > 0.66) return '#ff6f91';
-    if (ratio > 0.33) return '#ffc3a0';
-    return '#b4f8c8';
+    if (ratio > 0.66) return '#ff4444';
+    if (ratio > 0.33) return '#ffaa44';
+    return '#44ff88';
   };
 
   const getFrequencyLabel = (freq) => {
@@ -196,11 +219,12 @@ function renderHeatmap(movimientos) {
   return `
     <div class="section">
       <h2>🗺️ Mapa de calor de tus movimientos</h2>
-      <p>Rojo = mucho movimiento | Naranja = algo | Verde = poco</p>
+      <p>🔴 Rojo = mucho movimiento | 🟠 Naranja = algo | 🟢 Verde = poco</p>
       ${heatmapHtml}
       <p class="heatmap-note">
         Registramos <strong>${movimientos.length}</strong> posiciones del mouse en una cuadrícula 4x4.
       </p>
     </div>
-  `;
+  `;}
 }
+);

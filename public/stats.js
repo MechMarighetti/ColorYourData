@@ -1,38 +1,12 @@
-const COLOR_OPTIONS = [
-  { hex: '#FFB3BA', name: 'Rosa Caramelo' },
-  { hex: '#FFDFBA', name: 'Durazno Dulce' },
-  { hex: '#FFFFBA', name: 'Amarillo Mantequilla' },
-  { hex: '#BAFFC9', name: 'Menta Suave' },
-  { hex: '#BAE1FF', name: 'Azul Cielo' },
-  { hex: '#E8BAFF', name: 'Lila Magico' },
-  { hex: '#FFC3A0', name: 'Salmon Rosado' },
-  { hex: '#A0E7E5', name: 'Turquesa Claro' },
-  { hex: '#F5E1FD', name: 'Lavanda Bebe' },
-  { hex: '#B4F8C8', name: 'Verde Primavera' },
-  { hex: '#F9F871', name: 'Amarillo Sol' },
-  { hex: '#FF6F91', name: 'Fucsia Suave' },
-  { hex: '#FFD1DC', name: 'Crema de Fresa' },
-  { hex: '#E6E6FA', name: 'Perla Lavanda' },
-  { hex: '#F7DC6F', name: 'Melon Suave' },
-  { hex: '#F0B27A', name: 'Coral Claro' },
-  { hex: '#76D7C4', name: 'Aqua Fresco' },
-  { hex: '#F7CAC9', name: 'Rosa Cuarzo' },
-  { hex: '#D7BDE2', name: 'Lila Grisaceo' },
-  { hex: '#A3E4D7', name: 'Verde Agua' },
-  { hex: '#F9E79F', name: 'Amarillo Pastel' },
-  { hex: '#FAD7A1', name: 'Naranja Suave' },
-  { hex: '#F5E6CC', name: 'Vainilla' },
-  { hex: '#F2D7D5', name: 'Rosa Viejo' },
-  { hex: '#D4E6F1', name: 'Cielo Anochecer' },
-  { hex: '#A8E6CF', name: 'Menta Helada' },
-  { hex: '#FDEBD0', name: 'Champan' }
-];
+import { COLOR_OPTIONS, COLOR_NAMES, DATA_FIELDS, normalizeHex, colorName, hexToRgba } from './shared/utils.js';
 
 const charts = [];
 
-function random_name(fingerprint) {
+/* function random_name_verb(fingerprint) {
   const adjetivos = ['Luminoso', 'Curioso', 'Saltarin', 'Tranquilo', 'Brillante', 'Oscuro', 'Veloz', 'Sereno', 'Magico', 'Amable', 'Audaz', 'Sutil', 'Elegante', 'Radiante', 'Misterioso', 'Divertido', 'Sabio', 'Dulce', 'Fresco', 'Vibrante'];
   const sustantivos = ['Zorro', 'Nube', 'Lince', 'Pez', 'Gato', 'Luna', 'Sol', 'Estrella', 'Mariposa', 'Colibri', 'Tigre', 'Delfin', 'Arbol', 'Piedra', 'Rio', 'Nube', 'Fenix', 'Dragon', 'Buho', 'Coral'];
+  const verbos = ['Brilla', 'Corre', 'Salta', 'Vuela', 'Nada', 'Danza', 'Canta', 'Ruge', 'Susurra', 'Explora', 'Descubre', 'Ilumina', 'Fluye', 'Crece', 'Resplandece'];
+  const adverbios = ['rápidamente', 'suavemente', 'alegremente', 'silenciosamente', 'valientemente', 'cuidadosamente', 'misteriosamente', 'elegantemente', 'vibrantemente', 'dulcemente'];
   const value = String(fingerprint || 'sin-huella');
   let hash = 0;
   for (let i = 0; i < value.length; i++) {
@@ -41,19 +15,11 @@ function random_name(fingerprint) {
   }
   const idx1 = Math.abs(hash) % adjetivos.length;
   const idx2 = Math.abs(hash >> 8) % sustantivos.length;
-  return `${adjetivos[idx1]} ${sustantivos[idx2]}`;
+  const idx3 = Math.abs(hash >> 16) % verbos.length;
+  const idx4 = Math.abs(hash >> 24) % adverbios.length;
+  return `${adjetivos[idx1]} ${sustantivos[idx2]} ${verbos[idx3]} ${adverbios[idx4]}`;
 }
-
-function normalizeHex(color) {
-  if (!color) return '#CCCCCC';
-  return color.startsWith('#') ? color.toUpperCase() : `#${color}`.toUpperCase();
-}
-
-function colorName(color) {
-  const hex = normalizeHex(color);
-  return COLOR_OPTIONS.find(item => item.hex === hex)?.name || hex;
-}
-
+ */
 function numeric(value) {
   if (value === null || value === undefined || value === '' || value === 'No consentido') return null;
   const parsed = Number(value);
