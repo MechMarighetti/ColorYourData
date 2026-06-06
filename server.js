@@ -46,8 +46,6 @@ function random_name(fingerprint) {
     const adjetivos = ['Luminoso', 'Curioso', 'Saltarin', 'Tranquilo', 'Brillante', 'Oscuro', 'Veloz', 'Sereno', 'Magico', 'Amable', 'Audaz', 'Sutil', 'Elegante', 'Radiante', 'Misterioso', 'Divertido', 'Sabio', 'Dulce', 'Fresco', 'Vibrante'];
     const sustantivos = ['Zorro', 'Nube', 'Lince', 'Pez', 'Gato', 'Luna', 'Sol', 'Estrella', 'Mariposa', 'Colibri', 'Tigre', 'Delfin', 'Arbol', 'Piedra', 'Rio', 'Nube', 'Fenix', 'Dragon', 'Buho', 'Coral'];
     const verbos = ['Brilla', 'Corre', 'Salta', 'Vuela', 'Nada', 'Danza', 'Canta', 'Ruge', 'Susurra', 'Explora', 'Descubre', 'Ilumina', 'Fluye', 'Crece', 'Resplandece'];
-    const adverbios = ['rápidamente', 'suavemente', 'alegremente', 'silenciosamente', 'valientemente', 'cuidadosamente', 'misteriosamente', 'elegantemente', 'vibrantemente', 'dulcemente'];
-
     const value = String(fingerprint || 'sin-huella');
     let hash = 0;
     for (let i = 0; i < value.length; i++) {
@@ -57,9 +55,9 @@ function random_name(fingerprint) {
     const idx1 = Math.abs(hash) % adjetivos.length;
     const idx2 = Math.abs(hash >> 8) % sustantivos.length;
     const idx3 = Math.abs(hash >> 16) % verbos.length;
-    const idx4 = Math.abs(hash >> 24) % adverbios.length;
+  
     const nombre_inventado = `${adjetivos[idx1]} ${sustantivos[idx2]}`;
-    const narrativa = `${verbos[idx3]} ${adverbios[idx4]}`;
+    const narrativa = `${verbos[idx3]}`;
     return  `${nombre_inventado}, ${narrativa}` ;
 }
 

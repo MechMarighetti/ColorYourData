@@ -2,24 +2,7 @@ import { COLOR_OPTIONS, COLOR_NAMES, DATA_FIELDS, normalizeHex, colorName, hexTo
 
 const charts = [];
 
-/* function random_name_verb(fingerprint) {
-  const adjetivos = ['Luminoso', 'Curioso', 'Saltarin', 'Tranquilo', 'Brillante', 'Oscuro', 'Veloz', 'Sereno', 'Magico', 'Amable', 'Audaz', 'Sutil', 'Elegante', 'Radiante', 'Misterioso', 'Divertido', 'Sabio', 'Dulce', 'Fresco', 'Vibrante'];
-  const sustantivos = ['Zorro', 'Nube', 'Lince', 'Pez', 'Gato', 'Luna', 'Sol', 'Estrella', 'Mariposa', 'Colibri', 'Tigre', 'Delfin', 'Arbol', 'Piedra', 'Rio', 'Nube', 'Fenix', 'Dragon', 'Buho', 'Coral'];
-  const verbos = ['Brilla', 'Corre', 'Salta', 'Vuela', 'Nada', 'Danza', 'Canta', 'Ruge', 'Susurra', 'Explora', 'Descubre', 'Ilumina', 'Fluye', 'Crece', 'Resplandece'];
-  const adverbios = ['rápidamente', 'suavemente', 'alegremente', 'silenciosamente', 'valientemente', 'cuidadosamente', 'misteriosamente', 'elegantemente', 'vibrantemente', 'dulcemente'];
-  const value = String(fingerprint || 'sin-huella');
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) {
-    hash = ((hash << 5) - hash) + value.charCodeAt(i);
-    hash |= 0;
-  }
-  const idx1 = Math.abs(hash) % adjetivos.length;
-  const idx2 = Math.abs(hash >> 8) % sustantivos.length;
-  const idx3 = Math.abs(hash >> 16) % verbos.length;
-  const idx4 = Math.abs(hash >> 24) % adverbios.length;
-  return `${adjetivos[idx1]} ${sustantivos[idx2]} ${verbos[idx3]} ${adverbios[idx4]}`;
-}
- */
+
 function numeric(value) {
   if (value === null || value === undefined || value === '' || value === 'No consentido') return null;
   const parsed = Number(value);
@@ -98,7 +81,7 @@ function makeChart(canvasId, type, labels, data, options = {}) {
 
 function renderCharts(statsData) {
   const rows = statsData.responses || [];
-  const colors = countArray(statsData.colors, 'color');
+  const colors = countArray(colorName(normalizeHex(statsData.colors, 'color'))).slice(0, 10);
   const countries = countArray(statsData.countries, 'country').slice(0, 10);
   const platforms = countArray(statsData.platforms, 'platform').slice(0, 8);
   const languages = countArray(statsData.languages, 'language').slice(0, 8);
@@ -107,7 +90,7 @@ function renderCharts(statsData) {
   const scrollByCountry = groupAverage(rows, 'country', 'porcentaje_scroll').slice(0, 8);
   const resolutionMemory = averageMemoryByResolution(rows).slice(0, 10);
 
-  makeChart('colorsChart', 'bar', colors.map(item => colorName(item.label)), colors.map(item => item.value), {
+  makeChart('colorsChart', 'bar', colors.map(item => (normalizeHex(item.label))), colors.map(item => item.value), {
     label: 'Votos',
     colors: colors.map(item => normalizeHex(item.label)),
     legend: false
