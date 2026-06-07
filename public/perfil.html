@@ -6,11 +6,49 @@
   <title>Tu Perfil de Color</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Contenedor principal del perfil */
+
+    body {
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+
     #content {
-      max-width: 900px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
+    }
+
+    .perfil-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .perfil-grid .section {
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+    }
+
+    .perfil-grid .section p {
+      margin: 0;
+    }
+
+    .section--full {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+    }
+
+    @media (max-width: 600px) {
+      .perfil-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .section {
@@ -25,14 +63,8 @@
     }
 
     @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     .section:nth-child(1) { animation-delay: 0.1s; }
@@ -50,13 +82,31 @@
       gap: 10px;
     }
 
-    /* Color Preview */
+    .card-color-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+    }
+
+    .card-color-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .card-color-info p {
+      margin: 0;
+    }
+
     .color-preview {
-      width: 180px;
-      height: 180px;
-      border-radius: 20px;
-      margin: 0 auto 20px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      width: 90px;
+      height: 90px;
+      border-radius: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
       border: 3px solid rgba(255, 255, 255, 0.3);
       transition: transform 0.3s ease;
     }
@@ -65,46 +115,65 @@
       transform: scale(1.05);
     }
 
-    .profile-color-text {
-      font-size: 1.8em;
+    .profile-color-name {
+      margin: 4px 0;
+      font-weight: 600;
+      color: #4a3f72;
+    }
+
+    .profile-color-name.secondary {
+      font-weight: 400;
+      color: #888;
+      font-size: 0.95em;
+    }
+
+    .profile-color-hex {
+      display: inline-block;
+      font-size: 0.95em;
       font-weight: 700;
-      text-align: center;
-      margin: 16px 0 8px 0;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.06em;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: currentColor;
+      margin: 4px 0;
+    }
+
+    .profile-color-hex span {
+      color: white;
+      mix-blend-mode: difference;
     }
 
     .profile-country-text {
-      text-align: center;
       color: #888;
-      font-size: 1.1em;
-      margin: 0;
+      font-size: 0.95em;
+      margin: 4px 0 0;
     }
 
-    /* Estadísticas */
     .stat-value {
-      font-size: 3em;
+      font-size: 2.2em;
       font-weight: 700;
-      background: linear-gradient(135deg, #ff6f91, #ffd1dc);
+      background: linear-gradient(135deg, #ff6f91, #c084fc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin: 16px 0;
+      margin: 0;
       text-align: center;
+      line-height: 1.1;
     }
 
     .interpretation {
       background: linear-gradient(135deg, #f9f0ff, #f0f9ff);
-      padding: 16px 20px;
+      padding: 12px 16px;
       border-radius: 12px;
-      border-left: 4px solid #ff6f91;
+      border-left: 4px solid #c084fc;
       color: #4a3f72;
-      font-size: 1.1em;
+      font-size: 1em;
       font-weight: 500;
       text-align: center;
-      line-height: 1.6;
+      line-height: 1.5;
+      width: 100%;
     }
 
-    /* Barra de progreso */
     .progress-bar {
       width: 100%;
       height: 12px;
@@ -113,11 +182,6 @@
       overflow: hidden;
       margin: 20px 0;
     }
-    body {
- 
-  display: grid;
-  
-}
 
     .progress-fill {
       height: 100%;
@@ -126,31 +190,24 @@
       border-radius: 10px;
     }
 
-    /* Heatmap */
     .heatmap-container {
-      display: inline-grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin: 20px 0;
+      display: grid;
+      grid-template-columns: repeat(4, 52px);
+      gap: 6px;
+      margin: 20px auto;
     }
 
     .heatmap-cell {
-      aspect-ratio: 1;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.2em;
-      color: #4a3f72;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
-      cursor: pointer;
+      cursor: default;
     }
 
     .heatmap-cell:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+      transform: scale(1.06);
+      box-shadow: 0 6px 20px rgba(255, 111, 145, 0.3);
     }
 
     .heatmap-note {
@@ -161,7 +218,6 @@
       margin-top: 16px;
     }
 
-    /* Sin datos */
     .no-data {
       text-align: center;
       color: #999;
@@ -172,7 +228,6 @@
       font-style: italic;
     }
 
-    /* Error */
     .error {
       text-align: center;
       padding: 40px 20px;
@@ -199,35 +254,8 @@
       text-decoration: underline;
     }
 
-    /* Navegación inferior */
-    .profile-nav {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin-top: 32px;
-      padding-top: 32px;
-      border-top: 1px solid #e8e8f0;
-      flex-wrap: wrap;
-    }
-
-    .nav-link {
-      background: linear-gradient(135deg, #e8baff, #baffc9);
-      color: #4a3f72;
-      padding: 12px 24px;
-      border-radius: 50px;
-      text-decoration: none;
-      font-weight: 600;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 12px rgba(123, 92, 255, 0.1);
-    }
-
-    .nav-link:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(123, 92, 255, 0.15);
-    }
-
-    /* Loading */
     .loading {
+      display: flex;
       justify-content: center;
       align-items: center;
       min-height: 400px;
@@ -247,48 +275,33 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Header del perfil */
     .profile-header {
       text-align: center;
-      margin-bottom: 32px;
+      padding: 32px 20px 12px;
+      max-width: 1200px;
+      margin: 0 auto 12px;
     }
 
     .profile-header h1 {
       color: #6a5acd;
       font-size: 2.4em;
+      margin: 0 0 8px 0;
+    }
+
+    .profile-header > p {
+      color: #888;
+      font-size: 1.1em;
       margin: 0 0 12px 0;
     }
 
-    .profile-header p {
-      color: #888;
-      font-size: 1.1em;
+    .profile-header .profile-nav {
       margin: 0;
     }
 
-    /* Responsive */
     @media (max-width: 600px) {
-      .profile-header h1 {
-        font-size: 1.8em;
-      }
-
-      .section {
-        padding: 20px;
-      }
-
-      .stat-value {
-        font-size: 2.2em;
-      }
-
-    
-
-      .profile-nav {
-        flex-direction: row;
-      }
-
-      .nav-link {
-        width: 100%;
-        text-align: center;
-      }
+      .profile-header h1 { font-size: 1.8em; }
+      .section { padding: 20px; }
+      .stat-value { font-size: 1.6em; }
     }
   </style>
 </head>
@@ -296,6 +309,12 @@
   <div class="profile-header">
     <h1>🎨 Tu Perfil Colorido</h1>
     <p>Descubre tu huella de color en esta encuesta</p>
+    <nav class="profile-nav" aria-label="Navegación principal">
+      <a class="nav-link" href="index.html">🏠 Inicio</a>
+      <a class="nav-link" href="huella.html">🔍 Mi huella</a>
+      <a class="nav-link" href="stats.html">📊 Estadísticas</a>
+      <a class="nav-link" href="transparencia.html">📋 Transparencia</a>
+    </nav>
   </div>
 
   <div id="content" class="loading">
@@ -303,13 +322,6 @@
     <span>Cargando tu perfil...</span>
   </div>
 
-  <div class="profile-nav">
-    <a class="nav-link" href="index.html">🏠 Volver al inicio</a>
-    <a class="nav-link" href="huella.html">🔍 Tu huella digital</a>
-    <a class="nav-link" href="stats.html">📊 Estadísticas globales</a>
-  </div>
-
-  <script type="module" src="/shared/utils.js"></script>
   <script type="module" src="perfil.js"></script>
 </body>
 </html>
