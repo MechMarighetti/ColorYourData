@@ -10,6 +10,13 @@
     <h1>📋 Transparencia: Todos los datos recolectados</h1>
     <p class="subtitle">Cada fila corresponde a una respuesta individual. Podés filtrar por cualquier campo.</p>
 
+    <nav class="profile-nav" aria-label="Navegación principal">
+      <a class="nav-link" href="index.html">🏠 Inicio</a>
+      <a class="nav-link" href="perfil.html">👤 Mi perfil</a>
+      <a class="nav-link" href="huella.html">🔍 Mi huella</a>
+      <a class="nav-link" href="stats.html">📊 Estadísticas</a>
+    </nav>
+
     <div class="filter-bar">
       <label for="filter">🔍 Filtrar:</label>
       <input type="text" id="filter" placeholder="Escribí para filtrar...">
@@ -25,6 +32,8 @@
         </tbody>
       </table>
     </div>
+
+    <div id="pagination"></div>
   </main>
   <script type="module" src="/shared/utils.js"></script>
   <script type="module" src="transparencia.js"></script>

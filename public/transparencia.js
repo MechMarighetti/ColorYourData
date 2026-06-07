@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   `;
   document.head.appendChild(style);
 
+  const PAGE_SIZE = 10;
+  let currentPage = 1;
+  let currentRows = [];
   let allRows = [];
 
   try {
@@ -64,7 +67,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!res.ok) throw new Error('Error al obtener datos');
     const data = await res.json();
     allRows = Array.isArray(data) ? data : [];
-    renderTable(allRows, tbody, columnDefs);
+    currentRows = allRows;
+    renderTable(tbody, columnDefs);
+    renderPagination();
   } catch (err) {
     console.error(err);
     tbody.innerHTML = `<tr><td colspan="${columnDefs.length}" style="text-align:center; padding:2rem;">⚠️ No se pudieron cargar los datos.</td></tr>`;
@@ -73,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Filtro en vivo
   filterInput.addEventListener('input', () => {
     const term = filterInput.value.toLowerCase().trim();
-    const filtered = term
+    currentRows = term
       ? allRows.filter(row =>
           columnDefs.some(col => {
             const val = row[col.key];
@@ -81,15 +86,57 @@ document.addEventListener('DOMContentLoaded', async () => {
           })
         )
       : allRows;
-    renderTable(filtered, tbody, columnDefs);
+    currentPage = 1;
+    renderTable(tbody, columnDefs);
+    renderPagination();
   });
 
+  function renderPagination() {
+    const paginationEl = document.getElementById('pagination');
+    const totalPages = Math.ceil(currentRows.length / PAGE_SIZE);
+
+    if (totalPages <= 1) {
+      paginationEl.innerHTML = '';
+      return;
+    }
+
+    const makeBtn = (page, label, disabled, active) =>
+      `<button class="page-btn${active ? ' active' : ''}" data-page="${page}" ${disabled ? 'disabled' : ''}>${label}</button>`;
+
+    let html = '<div class="pagination">';
+    html += makeBtn(currentPage - 1, '‹', currentPage === 1, false);
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+        html += makeBtn(i, i, false, i === currentPage);
+      } else if (i === currentPage - 2 || i === currentPage + 2) {
+        html += `<span class="page-ellipsis">…</span>`;
+      }
+    }
+
+    html += makeBtn(currentPage + 1, '›', currentPage === totalPages, false);
+    html += '</div>';
+
+    paginationEl.innerHTML = html;
+    paginationEl.querySelectorAll('.page-btn:not([disabled])').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentPage = parseInt(btn.dataset.page);
+        renderTable(tbody, columnDefs);
+        renderPagination();
+        document.querySelector('.table-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
   // Función para renderizar la tabla con el fondo de color por fila
-  function renderTable(rows, container, colDefs) {
-    if (!rows.length) {
+  function renderTable(container, colDefs) {
+    if (!currentRows.length) {
       container.innerHTML = `<tr><td colspan="${colDefs.length}" style="text-align:center; padding:2rem;">✨ No hay datos que coincidan con el filtro</td></tr>`;
       return;
     }
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const rows = currentRows.slice(start, start + PAGE_SIZE);
 
     const htmlRows = rows.map(row => {
       // Obtener el color de la respuesta (ej: '#ff0000', 'rojo', etc.)
