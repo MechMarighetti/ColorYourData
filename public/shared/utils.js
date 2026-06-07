@@ -105,7 +105,8 @@ export const DATA_FIELDS = [
     { key: 'cpu_cores', icon: '🧠', label: 'Nucleos de CPU', description: 'Cantidad de nucleos logicos reportados por el navegador; aporta contexto sobre el dispositivo.' },
     { key: 'device_memory', icon: '💾', label: 'Memoria del dispositivo', description: 'Memoria aproximada informada por el navegador; otra pista tecnica del equipo.' },
     { key: 'fingerprint', icon: '🔐', label: 'Huella digital', description: 'Identificador generado desde caracteristicas del navegador. Aqui lo mostramos con un nombre amable y anonimo.' },
-    { key: 'timestamp', icon: '🗓️', label: 'Hora de la visita', description: 'Fecha y hora en que se registro la eleccion para ordenar el historial.' }
+    { key: 'timestamp', icon: '🗓️', label: 'Hora de la visita', description: 'Fecha y hora en que se registro la eleccion para ordenar el historial.' },
+    { key: 'mapa_ubicacion', icon: '🗺️', label: 'Ubicación aproximada', description: 'Posición geográfica detectada por tu dispositivo al dar permiso.' }
 ];
 
 export function normalizeHex(color) {

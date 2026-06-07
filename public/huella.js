@@ -58,6 +58,35 @@ function formatValue(key, data) {
   if (key === 'device_memory') return data.device_memory ? `${data.device_memory} GB aprox.` : notAvailable;
   if (key === 'fingerprint') return data.fingerprint_name || random_name(data.fingerprint);
   if (key === 'timestamp') return data.timestamp ? new Date(data.timestamp).toLocaleString('es-AR') : notAvailable;
+   if (key === 'mapa_ubicacion') {
+  const lat = parseFloat(data.latitude);
+  const lng = parseFloat(data.longitude);
+
+  if (!data.latitude || !data.longitude || isNaN(lat) || isNaN(lng)) {
+    return '<span style="color:#999;font-style:italic;">Ubicación no disponible</span>';
+  }
+
+  // ID único por si hay varios mapas en la página
+  const mapId = `map-${Math.random().toString(36).slice(2, 7)}`;
+
+  // Iniciamos el mapa después de que el DOM exista
+  requestAnimationFrame(() => {
+    const container = document.getElementById(mapId);
+    if (!container || typeof google === 'undefined') return;
+
+    const pos = { lat, lng };
+    const map = new google.maps.Map(container, {
+      center: pos,
+      zoom: 13,
+      disableDefaultUI: true,
+      zoomControl: true,
+    });
+    new google.maps.Marker({ position: pos, map });
+  });
+
+  return `<div id="${mapId}" style="width:100%;height:220px;border-radius:12px;"></div>`;
+}
+  
   return data[key] || notAvailable;
 }
 
