@@ -6,21 +6,23 @@
   <title>Tu Huella Digital</title>
   <link rel="stylesheet" href="style.css">
   <style>
-   
+    body { flex-direction: column; align-items: stretch; justify-content: flex-start; }
   </style>
 </head>
 <body class="app-body">
   <main class="insight-page huella-page">
-    <nav class="top-actions" aria-label="Navegacion principal">
-      <a class="btn-link" href="index.html">🏠 Elegir otro color</a>
-      <a class="btn-link" href="stats.html">📊 Ver estadísticas</a>
-    </nav>
-
     <header class="insight-hero" id="huellaHeader">
       <div class="hero-badge">🔍 Huella digital</div>
       <h1 id="saludoHuella">Tu huella digital en esta encuesta</h1>
       <p id="subtituloHuella">Estos son los rastros que dejaste al elegir tu color. Pasá el mouse sobre cada dato para entender qué significa.</p>
     </header>
+
+    <nav class="profile-nav" aria-label="Navegación principal">
+      <a class="nav-link" href="index.html">🏠 Inicio</a>
+      <a class="nav-link" href="perfil.html">👤 Mi perfil</a>
+      <a class="nav-link" href="stats.html">📊 Estadísticas</a>
+      <a class="nav-link" href="transparencia.html">📋 Transparencia</a>
+    </nav>
 
     <section id="emptyState" class="empty-state is-hidden">
       <h2>🎨 Todavía no elegiste tu color</h2>
