@@ -315,7 +315,8 @@ function renderDataGrid(container, data, opts = {}) {
       'platform_user_agent', 'screen_resolution', 'color_depth', 'timezone', 'cpu_cores', 'device_memory', 'language', 'fingerprint'
     ].includes(f.key))
     : fieldsFor(data).filter(f => ![
-      'platform_user_agent', 'screen_resolution', 'color_depth', 'timezone', 'cpu_cores', 'device_memory', 'language', 'fingerprint'
+      'platform_user_agent', 'screen_resolution', 'color_depth', 'timezone', 'cpu_cores', 'device_memory', 'language', 'fingerprint',
+      'movimientos_mouse'
     ].includes(f.key));
   container.innerHTML = fields.map(field => {
     let value = formatValue(field.key, data);

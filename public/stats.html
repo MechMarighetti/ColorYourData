@@ -7,18 +7,20 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="app-body">
+<body class="app-body" style="flex-direction: column; align-items: stretch; justify-content: flex-start;">
   <main class="insight-page stats-dashboard">
-    <nav class="top-actions" aria-label="Navegacion principal">
-      <a class="btn-link" href="index.html">🎨 Elegir mi color</a>
-      <a class="btn-link" href="huella.html">🔍 Mi huella</a>
-    </nav>
-
     <header class="insight-hero">
       <div class="hero-badge">📊 Estadisticas</div>
       <h1>Mapa global de colores y huellas</h1>
       <p>Explora que colores se eligen, desde donde llegan las visitas y que patrones tecnicos aparecen en la encuesta.</p>
     </header>
+
+    <nav class="profile-nav" aria-label="Navegación principal">
+      <a class="nav-link" href="index.html">🏠 Inicio</a>
+      <a class="nav-link" href="perfil.html">👤 Mi perfil</a>
+      <a class="nav-link" href="huella.html">🔍 Mi huella</a>
+      <a class="nav-link" href="transparencia.html">📋 Transparencia</a>
+    </nav>
 
     <section id="summaryCards" class="summary-grid"></section>
 
